@@ -10,6 +10,7 @@ data/
 mmsegmentation
 code/baseline*
 *.csv
+img/
 
 ### Linux ###
 
