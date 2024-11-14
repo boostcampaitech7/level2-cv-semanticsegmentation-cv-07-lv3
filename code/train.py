@@ -1,5 +1,6 @@
 # python native
 import os
+import gc
 import json
 import random
 import datetime
@@ -7,6 +8,7 @@ from functools import partial
 
 # external library
 import cv2
+import wandb
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
@@ -48,7 +50,7 @@ LR = 1e-4
 RANDOM_SEED = 21
 
 NUM_EPOCHS = 100
-VAL_EVERY = 5
+VAL_EVERY = 1
 
 SAVED_DIR = "checkpoints"
 
@@ -69,7 +71,11 @@ def set_seed():
     np.random.seed(RANDOM_SEED)
     random.seed(RANDOM_SEED)
 
-def train(model, data_loader, val_loader, criterion, optimizer):
+def save_model(model, file_name='fcn_resnet50_best_model.pt'):
+    output_path = os.path.join(SAVED_DIR, file_name)
+    torch.save(model, output_path)
+
+def train(model, train_loader, val_loader, criterion, optimizer):
     print(f'Start training..')
     
     n_class = len(CLASSES)
@@ -80,7 +86,7 @@ def train(model, data_loader, val_loader, criterion, optimizer):
     for epoch in range(NUM_EPOCHS):
         model.train()
 
-        for step, (images, masks) in enumerate(data_loader):            
+        for step, (images, masks) in enumerate(train_loader):            
             # gpu 연산을 위해 device 할당합니다.
             images, masks = images.cuda(), masks.cuda()
             optimizer.zero_grad()
@@ -100,16 +106,29 @@ def train(model, data_loader, val_loader, criterion, optimizer):
                     f'Step [{step+1}/{len(train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        # wandb 로깅
+        train_log_dict = {
+            "train_epoch": epoch+1,
+            "train_loss": round(loss.item(), 4)
+        }
+        wandb.log(train_log_dict)
+            
              
         # validation 주기에 따라 loss를 출력하고 best model을 저장합니다.
         if (epoch + 1) % VAL_EVERY == 0:
-            dice = validation(epoch + 1, model, val_loader, criterion)
+            val_dice = validation(epoch + 1, model, val_loader, criterion)
             
-            if best_dice < dice:
-                print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
+            val_log_dict = {
+                "val_epoch": epoch,
+                "val_dice": val_dice
+            }
+            wandb.log(val_log_dict)
+
+            if best_dice < val_dice:
+                print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {val_dice:.4f}")
                 print(f"Save model in {SAVED_DIR}")
-                best_dice = dice
-                save_model(model)
+                best_dice = val_dice
+                save_model(model, file_name="efficientb0_Unet_epoch{}.pt".format(str(epoch)))
 
 def validation(epoch, model, data_loader, criterion, thr=0.5):
     print(f'Start validation #{epoch:2d}')
@@ -125,7 +144,7 @@ def validation(epoch, model, data_loader, criterion, thr=0.5):
             images, masks = images.cuda(), masks.cuda()         
             model = model.cuda()
             
-            outputs = model(images)['out']
+            outputs = model(images)
             
             output_h, output_w = outputs.size(-2), outputs.size(-1)
             mask_h, mask_w = masks.size(-2), masks.size(-1)
@@ -159,7 +178,10 @@ def validation(epoch, model, data_loader, criterion, thr=0.5):
     return avg_dice
 
 def main():
-    # wandb.init() # wandb 시작
+    # 메모리 정리
+    gc.collect()
+    torch.cuda.empty_cache()
+
     set_seed() # 실험을 위한 시드 고정
 
     # checkpoint 저장 디렉토리 설정
@@ -201,10 +223,12 @@ def main():
     # Optimizer를 정의
     optimizer = optim.Adam(params=model.parameters(), lr=LR, weight_decay=1e-6)
 
-    train(model, train_loader, valid_loader, criterion, optimizer) # Training
+    # Training 시작
+    train(model, train_loader, valid_loader, criterion, optimizer)
     
     
 
 if __name__=="__main__":
+    wandb.init(project='Segmentation', name='logging_test') # wandb 시작
     main()
     # wandb.agent(sweep_id, function=main, count=5)
