@@ -2,14 +2,19 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,linux
 
 .conda
-.bash_history
+.netrc
 .local
 .gitconfig
 .rest-client
+.bash_history
+
 data/
 mmsegmentation
 code/baseline*
 *.csv
+img/
+wandb
+code/checkpoints/
 
 ### Linux ###
 
