@@ -1,6 +1,7 @@
 DATASET:
   IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
+  TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"
   IMAGE_SIZE: 512  # or whatever size you want
   BATCH_SIZE: 4
   NUM_WORKERS: 4
@@ -12,8 +13,8 @@ MODEL:
   PRETRAINED: True
 
 TRAIN:
-  NUM_EPOCHS: 100
-  VAL_EVERY: 5
+  NUM_EPOCHS: 5
+  VAL_EVERY: 1
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
   RANDOM_SEED: 21
@@ -39,4 +40,14 @@ OPTIMIZER:
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
 
-NAME: '' # ���� �̸� (i.e. 'unetpp_efficientb0_epoch100')
+SCHEDULER:
+  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
+  FACTOR: 0.1
+  PATIENCE: 10
+  VERBOSE: True
+
+VALIDATION:
+  THRESHOLD: 0.5  # Add threshold parameter
+
+WANDB:
+  NAME: 'smp_unetplusplus_efficientb0'

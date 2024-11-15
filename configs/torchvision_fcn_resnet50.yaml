@@ -38,6 +38,12 @@ OPTIMIZER:
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
 
+SCHEDULER:
+  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
+  FACTOR: 0.1
+  PATIENCE: 10
+  VERBOSE: True
+
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
 

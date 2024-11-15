@@ -15,6 +15,7 @@ from src.dataset import XRayDataset
 from src.loss import LossFactory
 from src.optimizer import OptimizerFactory
 from src.trainer import Trainer
+from src.scheduler import SchedulerFactory
 
 
 def parse_args():
@@ -142,10 +143,11 @@ def main():
         checkpoint = torch.load(args.resume)
         model.load_state_dict(checkpoint['model_state_dict'])
     
-    # Setup loss function and optimizer using factories
+    # Setup loss function, optimizer, and scheduler using factories
     criterion = LossFactory.get_loss(cfg['LOSS'])
     optimizer = OptimizerFactory.get_optimizer(cfg['OPTIMIZER'], model.parameters())
-    
+    scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
+
     # Setup trainer
     trainer = Trainer(
         cfg=cfg,
@@ -153,7 +155,8 @@ def main():
         train_loader=train_loader,
         val_loader=valid_loader,
         criterion=criterion,
-        optimizer=optimizer
+        optimizer=optimizer,
+        scheduler=scheduler
     )
     
     # Start training
