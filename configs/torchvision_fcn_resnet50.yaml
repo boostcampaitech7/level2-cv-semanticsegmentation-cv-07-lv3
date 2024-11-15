@@ -40,3 +40,6 @@ OPTIMIZER:
 
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
+
+WANDB:
+  NAME: 'torchvision_fcn_resnet50'
