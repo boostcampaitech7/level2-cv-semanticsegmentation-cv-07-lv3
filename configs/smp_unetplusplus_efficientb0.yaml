@@ -3,11 +3,11 @@ DATASET:
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
   IMAGE_SIZE: 512  # or whatever size you want
   BATCH_SIZE: 4
-  NUM_WORKERS: 8
+  NUM_WORKERS: 4
 
 MODEL:
   TYPE: "smp"
-  NAME: "UnetPlusPlus"
+  ARCHITECTURE: "UnetPlusPlus"
   ENCODER: "efficientnet-b0"
   PRETRAINED: True
 
@@ -39,4 +39,4 @@ OPTIMIZER:
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
 
-NAME: '' # ½ÇÇè ÀÌ¸§ (i.e. 'unetpp_efficientb0_epoch100')
+NAME: '' # ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¸ï¿½ (i.e. 'unetpp_efficientb0_epoch100')
