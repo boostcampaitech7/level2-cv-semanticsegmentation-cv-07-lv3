@@ -34,6 +34,6 @@ def excel_to_csv(excel_file_path, sheet_name=0, csv_file_path=None):
     print(f"저장 완료: {csv_file_path}")
 
 
-excel_file_path = "data/meta_data.xlsx"
-csv_file_path = "data/meta_data.csv"
+excel_file_path = "../data/meta_data.xlsx"
+csv_file_path = "../data/meta_data.csv"
 excel_to_csv(excel_file_path, csv_file_path=csv_file_path)
