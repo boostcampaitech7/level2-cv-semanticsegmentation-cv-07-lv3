@@ -19,6 +19,7 @@ class Trainer:
         val_loader: DataLoader for validation data
         criterion: Loss function
         optimizer: Optimizer
+        scheduler: Learning rate scheduler
     """
     def __init__(
         self,
@@ -27,7 +28,8 @@ class Trainer:
         train_loader: torch.utils.data.DataLoader,
         val_loader: torch.utils.data.DataLoader,
         criterion: nn.Module,
-        optimizer: torch.optim.Optimizer
+        optimizer: torch.optim.Optimizer,
+        scheduler: object
     ):
         self.cfg = cfg
         self.model = model
@@ -35,6 +37,7 @@ class Trainer:
         self.val_loader = val_loader
         self.criterion = criterion
         self.optimizer = optimizer
+        self.scheduler = scheduler
         
         # Setup device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -111,7 +114,16 @@ class Trainer:
                     f'Step [{step+1}/{len(self.train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
-        return loss.item()
+        
+        epoch_loss = loss.item()
+        
+        # Always step the scheduler
+        if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            self.scheduler.step(epoch_loss)
+        else:
+            self.scheduler.step()
+        
+        return epoch_loss
     
     def _validate_epoch(self, epoch: int) -> Tuple[float, Dict, float]:
         """Validation loop for one epoch
