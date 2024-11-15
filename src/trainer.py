@@ -57,7 +57,7 @@ class Trainer:
             # Training phase
             train_loss = self._train_epoch(epoch)
 
-            # wandb �α�
+            # wandb α
             train_log_dict = {
                 "train_epoch": epoch + 1,
                 "train_loss": round(train_loss, 4)
@@ -68,7 +68,7 @@ class Trainer:
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
                 dice, class_dice_dict, val_loss = self._validate_epoch(epoch + 1)
 
-                # wandb validation �α�
+                # wandb validation α
                 val_log_dict = {
                     "val_epoch": epoch + 1,
                     "val_dice": dice,
@@ -96,7 +96,7 @@ class Trainer:
             outputs = self.model(images)
             
             # Calculate loss
-            loss = self.criterion(outputs, masks)
+            loss = self.criterion(outputs['out'], masks)
             
             # Backward pass
             self.optimizer.zero_grad()
@@ -132,37 +132,35 @@ class Trainer:
         dices = []
         
         with torch.no_grad():
-            total_loss = 0
-            cnt = 0
-
-            for step, (images, masks) in tqdm(enumerate(self.val_loader), total=len(self.val_loader)):
-                images = images.to(self.device)
-                masks = masks.to(self.device)
-                
-                # Forward pass
-                outputs = self.model(images)['out']
-                
-                # Handle different output sizes
-                output_h, output_w = outputs.size(-2), outputs.size(-1)
-                mask_h, mask_w = masks.size(-2), masks.size(-1)
-                
-                if output_h != mask_h or output_w != mask_w:
-                    outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
-                
-                # Calculate loss
-                loss = self.criterion(outputs, masks)
-                total_loss += loss
-                cnt += 1
-                
-                # Calculate Dice coefficient
-                outputs = torch.sigmoid(outputs)
-                outputs = (outputs > threshold).detach().cpu()
-                masks = masks.detach().cpu()
-                
-                dice = self.dice_coef(outputs, masks)
-                dices.append(dice)
-                
-        # Calculate average Dice coefficient for each class
+            with tqdm(total=len(self.val_loader), desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
+                for images, masks in self.val_loader:
+                    images = images.to(self.device)
+                    masks = masks.to(self.device)
+                    
+                    # Forward pass
+                    outputs = self.model(images)['out']
+                    
+                    # Handle different output sizes
+                    output_h, output_w = outputs.size(-2), outputs.size(-1)
+                    mask_h, mask_w = masks.size(-2), masks.size(-1)
+                    
+                    if output_h != mask_h or output_w != mask_w:
+                        outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
+                    
+                    # Calculate loss
+                    loss = self.criterion(outputs, masks)
+                    total_loss += loss.item()
+                    
+                    # Calculate Dice coefficient on GPU
+                    outputs = torch.sigmoid(outputs)
+                    outputs = (outputs > self.threshold)
+                    dice = self.dice_coef(outputs, masks)
+                    dices.append(dice.detach().cpu())
+                    
+                    pbar.update(1)
+                    pbar.set_postfix(dice=torch.mean(dice).item(), loss=loss.item())
+        
+        val_time = time.time() - val_start
         dices = torch.cat(dices, 0)
         dices_per_class = torch.mean(dices, 0)
         
