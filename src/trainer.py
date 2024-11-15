@@ -1,5 +1,6 @@
 import os
 import datetime
+import wandb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -47,18 +48,33 @@ class Trainer:
         
     def train(self) -> None:
         """Main training loop"""
+        self.model.train()
         print(f'Start training..')
         
         best_dice = 0.
         
         for epoch in range(self.cfg['TRAIN']['NUM_EPOCHS']):
             # Training phase
-            self.model.train()
-            self._train_epoch(epoch)
+            train_loss = self._train_epoch(epoch)
+
+            # wandb �α�
+            train_log_dict = {
+                "train_epoch": epoch + 1,
+                "train_loss": round(train_loss, 4)
+            }
+            wandb.log(train_log_dict)
             
             # Validation phase
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
                 dice, class_dice_dict, val_loss = self._validate_epoch(epoch + 1)
+
+                # wandb validation �α�
+                val_log_dict = {
+                    "val_epoch": epoch + 1,
+                    "val_dice": dice,
+                    "val_loss": val_loss
+                }
+                wandb.log(val_log_dict)
                 
                 if best_dice < dice:
                     print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
@@ -77,7 +93,7 @@ class Trainer:
             masks = masks.to(self.device)
             
             # Forward pass
-            outputs = self.model(images)['out']
+            outputs = self.model(images)
             
             # Calculate loss
             loss = self.criterion(outputs, masks)
@@ -95,6 +111,7 @@ class Trainer:
                     f'Step [{step+1}/{len(self.train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        return loss.item()
     
     def _validate_epoch(self, epoch: int) -> Tuple[float, Dict, float]:
         """Validation loop for one epoch
@@ -115,35 +132,37 @@ class Trainer:
         dices = []
         
         with torch.no_grad():
-            with tqdm(total=len(self.val_loader), desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
-                for images, masks in self.val_loader:
-                    images = images.to(self.device)
-                    masks = masks.to(self.device)
-                    
-                    # Forward pass
-                    outputs = self.model(images)['out']
-                    
-                    # Handle different output sizes
-                    output_h, output_w = outputs.size(-2), outputs.size(-1)
-                    mask_h, mask_w = masks.size(-2), masks.size(-1)
-                    
-                    if output_h != mask_h or output_w != mask_w:
-                        outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
-                    
-                    # Calculate loss
-                    loss = self.criterion(outputs, masks)
-                    total_loss += loss.item()
-                    
-                    # Calculate Dice coefficient on GPU
-                    outputs = torch.sigmoid(outputs)
-                    outputs = (outputs > self.threshold)
-                    dice = self.dice_coef(outputs, masks)
-                    dices.append(dice.detach().cpu())
-                    
-                    pbar.update(1)
-                    pbar.set_postfix(dice=torch.mean(dice).item(), loss=loss.item())
-        
-        val_time = time.time() - val_start
+            total_loss = 0
+            cnt = 0
+
+            for step, (images, masks) in tqdm(enumerate(self.val_loader), total=len(self.val_loader)):
+                images = images.to(self.device)
+                masks = masks.to(self.device)
+                
+                # Forward pass
+                outputs = self.model(images)['out']
+                
+                # Handle different output sizes
+                output_h, output_w = outputs.size(-2), outputs.size(-1)
+                mask_h, mask_w = masks.size(-2), masks.size(-1)
+                
+                if output_h != mask_h or output_w != mask_w:
+                    outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
+                
+                # Calculate loss
+                loss = self.criterion(outputs, masks)
+                total_loss += loss
+                cnt += 1
+                
+                # Calculate Dice coefficient
+                outputs = torch.sigmoid(outputs)
+                outputs = (outputs > threshold).detach().cpu()
+                masks = masks.detach().cpu()
+                
+                dice = self.dice_coef(outputs, masks)
+                dices.append(dice)
+                
+        # Calculate average Dice coefficient for each class
         dices = torch.cat(dices, 0)
         dices_per_class = torch.mean(dices, 0)
         
