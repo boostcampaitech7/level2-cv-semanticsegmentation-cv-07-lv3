@@ -22,8 +22,8 @@ def excel_to_csv(excel_file_path, sheet_name=0, csv_file_path=None):
         raise e
 
     # 특수 문자 `_x0008_`, ` ` 제거
-    df = df.applymap(lambda x: x.replace('_x0008_', '') if isinstance(x, str) else x)
-    df = df.applymap(lambda x: x.replace(' ', '') if isinstance(x, str) else x)
+    df = df.map(lambda x: x.replace('_x0008_', '') if isinstance(x, str) else x)
+    df = df.map(lambda x: x.replace(' ', '') if isinstance(x, str) else x)
 
     # CSV 파일 경로 설정 (경로가 제공되지 않을 경우 기본 경로 사용)
     if csv_file_path is None:
