@@ -77,10 +77,10 @@ def main():
     cfg = load_config(args.config)
 
     wandb.init(
-        project = "Segmentation", # 고정
-        entity = 'jhs7027-naver', # 고정
-        group = '', 
-        name = cfg['NAME'], 
+        project = "Segmentation", 
+        entity = 'jhs7027-naver', 
+        group = 'test', 
+        name = cfg['WANDB']['NAME'], 
         config = {
             "IMAGE_SIZE": cfg['DATASET'].get('IMAGE_SIZE'),
             "BATCH_SIZE": cfg['DATASET'].get('BATCH_SIZE'),
