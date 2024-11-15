@@ -2,8 +2,8 @@ DATASET:
   IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
   IMAGE_SIZE: 512  # or whatever size you want
-  BATCH_SIZE: 8
-  NUM_WORKERS: 8
+  BATCH_SIZE: 4
+  NUM_WORKERS: 4
 
 MODEL:
   TYPE: "torchvision"
@@ -12,7 +12,7 @@ MODEL:
 
 TRAIN:
   NUM_EPOCHS: 5
-  VAL_EVERY: 5
+  VAL_EVERY: 1
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
   RANDOM_SEED: 21
@@ -37,3 +37,6 @@ OPTIMIZER:
   WEIGHT_DECAY: 1e-6
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
+
+VALIDATION:
+  THRESHOLD: 0.5  # Add threshold parameter

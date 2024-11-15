@@ -10,7 +10,7 @@ import albumentations as A
 from torch.utils.data import DataLoader
 
 from src.models import get_model
-from src.data import XRayDataset
+from src.dataset import XRayDataset
 from src.loss import LossFactory
 from src.optimizer import OptimizerFactory
 from src.trainer import Trainer
@@ -19,15 +19,20 @@ from src.trainer import Trainer
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Train segmentation model')
-    parser.add_argument('--config', type=str, default='configs/config.yaml',
-                        help='path to config file')
+    parser.add_argument('--config', type=str, default='torchvision_fcn_resnet50.yaml',
+                        help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
     return parser.parse_args()
 
 
-def load_config(config_path):
-    """Load config file"""
+def load_config(config_name):
+    """Load config file from configs directory"""
+    config_path = os.path.join('configs', config_name)
+    if not os.path.exists(config_path):
+        print(f'Config file not found: {config_path}')
+        exit(1)
+        
     with open(config_path, 'r') as f:
         try:
             config = yaml.safe_load(f)
