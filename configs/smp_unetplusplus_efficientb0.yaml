@@ -38,3 +38,5 @@ OPTIMIZER:
   WEIGHT_DECAY: 1e-6
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
+
+NAME: '' # 실험 이름 (i.e. 'unetpp_efficientb0_epoch100')

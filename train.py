@@ -2,6 +2,7 @@ import os
 import random
 import argparse
 import yaml
+import wandb
 import numpy as np
 import torch
 import torch.nn as nn
@@ -69,6 +70,24 @@ def main():
     # Parse arguments and load config
     args = parse_args()
     cfg = load_config(args.config)
+
+    wandb.init(
+        project = "Segmentation", # 고정
+        entity = 'jhs7027-naver', # 고정
+        group = '', 
+        name = cfg['NAME'], 
+        config = {
+            "IMAGE_SIZE": cfg['DATASET'].get('IMAGE_SIZE'),
+            "BATCH_SIZE": cfg['DATASET'].get('BATCH_SIZE'),
+            "NUM_WORKERS": cfg['DATASET'].get('NUM_WORKERS'),
+            "ENCODER": cfg['MODEL'].get('ENCODER'),
+            "NUM_EPOCHS": cfg['TRAIN'].get('NUM_EPOCHS'),
+            "VAL_EVERY": cfg['TRAIN'].get('VAL_EVERY'),
+            "LEARNING_RATE": cfg['TRAIN'].get('LEARNING_RATE'),
+            "WEIGHT_DECAY": cfg['TRAIN'].get('WEIGHT_DECAY'),
+            "RANDOM_SEED": cfg['TRAIN'].get('RANDOM_SEED'),
+        }
+    )
     
     # Set random seed
     set_seed(cfg['TRAIN']['RANDOM_SEED'])

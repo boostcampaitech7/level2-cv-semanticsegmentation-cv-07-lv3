@@ -1,5 +1,6 @@
 import os
 import datetime
+import wandb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -50,11 +51,25 @@ class Trainer:
         
         for epoch in range(self.cfg['TRAIN']['NUM_EPOCHS']):
             # Training phase
-            self._train_epoch(epoch)
+            train_loss = self._train_epoch(epoch)
+
+            # wandb ·Î±ë
+            train_log_dict = {
+                "train_epoch": epoch + 1,
+                "train_loss": round(train_loss, 4)
+            }
+            wandb.log(train_log_dict)
             
             # Validation phase
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
                 dice = self._validate_epoch(epoch + 1)
+
+                # wandb validation ·Î±ë
+                val_log_dict = {
+                    "val_epoch": epoch + 1,
+                    "val_dice": dice
+                }
+                wandb.log(val_log_dict)
                 
                 if best_dice < dice:
                     print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
@@ -91,6 +106,7 @@ class Trainer:
                     f'Step [{step+1}/{len(self.train_loader)}], '
                     f'Loss: {round(loss.item(),4)}'
                 )
+        return loss.item()
     
     def _validate_epoch(self, epoch: int, threshold: float = 0.5) -> float:
         """Validation loop for one epoch
