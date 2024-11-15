@@ -10,7 +10,7 @@ import albumentations as A
 from torch.utils.data import DataLoader
 
 from src.models import get_model
-from src.data import XRayDataset
+from src.dataset import XRayDataset
 from src.loss import LossFactory
 from src.optimizer import OptimizerFactory
 from src.trainer import Trainer

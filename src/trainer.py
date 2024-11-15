@@ -43,13 +43,13 @@ class Trainer:
         
     def train(self) -> None:
         """Main training loop"""
+        self.model.train()
         print(f'Start training..')
         
         best_dice = 0.
         
         for epoch in range(self.cfg['TRAIN']['NUM_EPOCHS']):
             # Training phase
-            self.model.train()
             self._train_epoch(epoch)
             
             # Validation phase
@@ -73,7 +73,7 @@ class Trainer:
             masks = masks.to(self.device)
             
             # Forward pass
-            outputs = self.model(images)['out']
+            outputs = self.model(images)
             
             # Calculate loss
             loss = self.criterion(outputs, masks)
@@ -115,7 +115,7 @@ class Trainer:
                 masks = masks.to(self.device)
                 
                 # Forward pass
-                outputs = self.model(images)['out']
+                outputs = self.model(images) # for smp model
                 
                 # Handle different output sizes
                 output_h, output_w = outputs.size(-2), outputs.size(-1)
@@ -131,11 +131,11 @@ class Trainer:
                 
                 # Calculate Dice coefficient
                 outputs = torch.sigmoid(outputs)
-                outputs = (outputs > threshold).detach().cpu()
-                masks = masks.detach().cpu()
+                outputs = (outputs > threshold).detach()
+                masks = masks.detach()
                 
                 dice = self.dice_coef(outputs, masks)
-                dices.append(dice)
+                dices.append(dice.cpu())
                 
         # Calculate average Dice coefficient for each class
         dices = torch.cat(dices, 0)
