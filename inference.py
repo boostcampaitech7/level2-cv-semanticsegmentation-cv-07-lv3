@@ -11,6 +11,7 @@ import albumentations as A
 from torch.utils.data import DataLoader
 
 from src.data import XRayInferenceDataset
+from utils.encode_mask import encode_mask_to_rle
 
 
 def parse_args():
@@ -36,20 +37,6 @@ def load_config(config_path):
             print(f'Error loading config file: {e}')
             exit(1)
     return config
-
-
-def encode_mask_to_rle(mask):
-    """
-    mask: numpy array binary mask 
-    1 - mask 
-    0 - background
-    Returns encoded run length 
-    """
-    pixels = mask.flatten()
-    pixels = np.concatenate([[0], pixels, [0]])
-    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
-    runs[1::2] -= runs[::2]
-    return ' '.join(str(x) for x in runs)
 
 
 def decode_rle_to_mask(rle, height, width):
