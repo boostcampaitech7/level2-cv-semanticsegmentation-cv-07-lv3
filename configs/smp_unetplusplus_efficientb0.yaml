@@ -1,0 +1,40 @@
+DATASET:
+  IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
+  LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
+  IMAGE_SIZE: 512  # or whatever size you want
+  BATCH_SIZE: 8
+  NUM_WORKERS: 8
+
+MODEL:
+  TYPE: "smp"
+  NAME: "UnetPlusPlus"
+  ENCODER: "efficientnet-b0"
+  PRETRAINED: True
+
+TRAIN:
+  NUM_EPOCHS: 5
+  VAL_EVERY: 5
+  LEARNING_RATE: 1e-4
+  WEIGHT_DECAY: 1e-6
+  RANDOM_SEED: 21
+  SAVED_DIR: "checkpoints"
+
+CLASSES: [
+  'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
+  'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
+  'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
+  'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
+  'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
+  'Triquetrum', 'Pisiform', 'Radius', 'Ulna'
+]
+
+LOSS:
+  NAME: "bce"  # ['bce', 'dice', 'combined']
+  WEIGHTS: [1.0, 0.5]  # weights for combined loss
+
+OPTIMIZER:
+  NAME: "adam"  # ['adam', 'adamw', 'sgd']
+  LR: 1e-4
+  WEIGHT_DECAY: 1e-6
+  BETAS: [0.9, 0.999]  # for adam/adamw
+  MOMENTUM: 0.9  # for sgd
