@@ -10,7 +10,7 @@ MODEL:
   TYPE: "smp"
   ARCHITECTURE: "UnetPlusPlus"
   ENCODER: "efficientnet-b0"
-  PRETRAINED: True
+  ENCODER_WEIGHTS: "imagenet"
 
 TRAIN:
   NUM_EPOCHS: 5
@@ -31,23 +31,30 @@ CLASSES: [
 
 LOSS:
   NAME: "bce"  # ['bce', 'dice', 'combined']
-  WEIGHTS: [1.0, 0.5]  # weights for combined loss
+  WEIGHTS: [1.0, 1.0]  # weights for combined loss
 
 OPTIMIZER:
-  NAME: "adam"  # ['adam', 'adamw', 'sgd']
+  NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
   LR: 1e-4
   WEIGHT_DECAY: 1e-6
-  BETAS: [0.9, 0.999]  # for adam/adamw
+  BETAS: [0.9, 0.999]  # for adam/adamw/lion
+  USE_TRITON: False  # for lion
   MOMENTUM: 0.9  # for sgd
 
 SCHEDULER:
   NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
-  FACTOR: 0.1
-  PATIENCE: 10
-  VERBOSE: True
+  STEP_SIZE: 10  # for steplr
+  MILESTONES: [10, 20, 30]  # for multisteplr
+  GAMMA: 0.95  # for exponentiallr
+  FACTOR: 0.1  # for reducelronplateau
+  PATIENCE: 10  # for reducelronplateau
+  VERBOSE: True  # for reducelronplateau
+  T_MAX: 10  # for cosineannealinglr
+  ETA_MIN: 0  # for cosineannealinglr
 
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
 
 WANDB:
+  GROUP: 'hyungjoon'
   NAME: 'smp_unetplusplus_efficientb0'
