@@ -8,6 +8,10 @@ from tqdm import tqdm
 from typing import Dict, Tuple
 import time
 from datetime import timedelta
+import pandas as pd
+import numpy as np
+from utils.encode_mask import encode_mask_to_rle
+from utils.resources import CLASSES
 
 class Trainer:
     """Trainer class for model training and validation
@@ -151,10 +155,13 @@ class Trainer:
         
         total_loss = 0
         dices = []
+
+        rles = []
+        filename_and_class = []
         
         with torch.no_grad():
             with tqdm(total=len(self.val_loader), desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
-                for images, masks in self.val_loader:
+                for step, (images, masks) in enumerate(self.val_loader):
                     images = images.to(self.device)
                     masks = masks.to(self.device)
                     
@@ -177,6 +184,17 @@ class Trainer:
                     outputs = (outputs > self.threshold)
                     dice = self.dice_coef(outputs, masks)
                     dices.append(dice.detach().cpu())
+
+                    batch_start = step * self.val_loader.batch_size
+
+                    for i in range(outputs.size(0)):
+                        current_image_name = os.path.basename(self.val_loader.dataset.filenames[batch_start + i])
+
+                        for class_index, class_name in enumerate(CLASSES):
+                            output_mask = outputs[i, class_index].detach().cpu().numpy().astype(np.uint8)
+                            rle = encode_mask_to_rle(output_mask)
+                            rles.append(rle)
+                            filename_and_class.append(f"{current_image_name}_{class_name}")
                     
                     pbar.update(1)
                     pbar.set_postfix(dice=torch.mean(dice).item(), loss=loss.item())
@@ -203,6 +221,23 @@ class Trainer:
             f"{c}'s dice score": d.item() 
             for c, d in zip(self.cfg['CLASSES'], dices_per_class)
         }
+        output_path = '../validation_result'
+        output_csv = f'/val_epoch_{epoch:2d}.csv'
+
+        if not os.path.exists(output_path):
+            os.makedirs(output_path, exist_ok=True)
+
+        filename, classes = zip(*[x.rsplit("_", 1) for x in filename_and_class])
+        image_name = [os.path.basename(f) for f in filename]
+
+ 
+        df = pd.DataFrame({
+            "image_name": image_name,
+            "class": classes,
+            "rle": rles,
+        })
+        
+        df.to_csv(output_path + output_csv, index=False)
         
         return avg_dice, class_dice_dict, avg_loss
     
