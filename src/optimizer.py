@@ -1,4 +1,15 @@
 import torch.optim as optim
+
+import importlib
+import os
+
+package_name = "lion-pytorch"
+
+try:
+    importlib.import_module(package_name.replace("-", "_"))
+except ImportError:
+    os.system(f"pip install {package_name}")
+    
 from lion_pytorch import Lion
 
 class OptimizerFactory:
