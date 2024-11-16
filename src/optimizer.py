@@ -1,4 +1,5 @@
 import torch.optim as optim
+from lion_pytorch import Lion
 
 class OptimizerFactory:
     """Factory class for creating optimizers"""
@@ -28,6 +29,14 @@ class OptimizerFactory:
                 lr=lr,
                 momentum=optimizer_config.get('MOMENTUM', 0.9),
                 weight_decay=weight_decay
+            )
+        elif optimizer_name == 'lion':
+            return Lion(
+                model_parameters,
+                lr=lr,
+                weight_decay=weight_decay,
+                betas=optimizer_config.get('BETAS', (0.9, 0.99)),
+                use_triton=optimizer_config.get('USE_TRITON', False)
             )
         else:
             raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")
