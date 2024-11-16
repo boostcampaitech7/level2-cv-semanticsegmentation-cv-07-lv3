@@ -21,7 +21,7 @@ from src.scheduler import SchedulerFactory
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Train segmentation model')
-    parser.add_argument('-c', '--config', type=str, default='torchvision_fcn_resnet50.yaml',
+    parser.add_argument('-c', '--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
