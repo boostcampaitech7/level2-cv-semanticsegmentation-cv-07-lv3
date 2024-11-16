@@ -24,14 +24,15 @@ def rle_decode(mask_rle, shape):
         img[lo:hi] = 1
     return img.reshape(shape)
 
-def visualize_segmentation(image_path, csv_path, output_dir):
+def visualize_test(image_path, csv_path, output_dir, metadata_file):
     """세그멘테이션 결과를 시각화합니다."""
     
     os.makedirs(output_dir, exist_ok=True)
-    df = pd.read_csv(csv_path)
+    data = pd.read_csv(csv_path)
+    metadata = pd.read_csv(metadata_file)
     
 
-    for image_name in tqdm(df['image_name'].unique()):
+    for image_name in tqdm(data['image_name'].unique()):
         
         full_image_path = find_image_in_subfolders(image_path, image_name)
         
@@ -45,25 +46,69 @@ def visualize_segmentation(image_path, csv_path, output_dir):
             continue
             
         masks = []
+        class_names = []
         
         # 해당 이미지의 모든 클래스에 대해 마스크 생성
-        image_df = df[df['image_name'] == image_name]
+        image_df = data[data['image_name'] == image_name]
         for _, row in image_df.iterrows():
             if pd.isna(row['rle']):
                 continue
             class_mask = rle_decode(row['rle'], image.shape[:2])
             masks.append(class_mask)
+            class_names.append(row['class'])
         
 
         colored_mask = np.zeros_like(image)
+
         for i, mask in enumerate(masks):
             
             color = PALETTE[i % len(PALETTE)]
             colored_mask[mask == 1] = color
+
+            y_coords, x_coords = np.where(mask == 1)
+            if len(y_coords) > 0 and len(x_coords) > 0:
+                centroid_x = int(np.mean(x_coords))
+                centroid_y = int(np.mean(y_coords))
+                text_x = min(centroid_x + 10, image.shape[1] - 100)
+                text_y = max(centroid_y, 30)
+                cv2.putText(image, class_names[i], (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
+
         
         result = cv2.addWeighted(image, 0.7, colored_mask, 0.3, 0)
-        
-        new_image_name = f"{os.path.basename(os.path.dirname(full_image_path))}_{image_name}"
+
+        # 이미지 folder 이름 추출
+        id_folder = os.path.basename(os.path.dirname(full_image_path))
+        metadata_row = metadata[metadata['ID'].astype(str).str.zfill(3) == id_folder[2:].zfill(3)]
+
+        if metadata_row.empty:
+            print(f"Metadata not found for image: {id_folder}/{image_name}")
+            continue
+
+        metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
+        gender_kor = metadata_row['성별'].values[0]
+
+        if '여' in gender_kor:
+            gender_eng = 'female'
+        elif '남' in gender_kor:
+            gender_eng = 'male'
+        else:
+            gender_eng = 'unknown'
+            
+
+        metadata_text = (
+            f"ID: {metadata_row['ID'].values[0]} \n"
+            f"age: {metadata_row['나이'].values[0]}\n"
+            f"gender: {gender_eng}\n"
+            f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
+            f"height: {metadata_row['키(신장)'].values[0]}\n"
+        )
+
+        y0, dy = 50, 50
+        for i, line in enumerate(metadata_text.split('\n')):
+            y = y0 + i * dy
+            cv2.putText(result, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
+
+        new_image_name = f"{id_folder}_{image_name}"
         output_path = os.path.join(output_dir, new_image_name)
         cv2.imwrite(output_path, result)
 
@@ -76,12 +121,14 @@ def main():
             - 예시 : efficient_unet_best_model.csv
     """
     check_point_csv = 'efficient_unet_best_model.csv'
+    metadata_csv = "../../data/meta_data.csv"
 
     image_path = "../../data/test/DCM"
     csv_path = f"../../code/{check_point_csv}"
     output_dir = f"../../img/test_visualized/{check_point_csv.split('_best_model')[0]}"
     
-    visualize_segmentation(image_path, csv_path, output_dir)
+    
+    visualize_test(image_path, csv_path, output_dir, metadata_csv)
 
 
 if __name__ == "__main__":
