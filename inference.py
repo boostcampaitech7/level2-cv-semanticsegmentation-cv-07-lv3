@@ -101,7 +101,7 @@ class Inferencer:
                 images = images.to(self.device)
                 
                 # Forward pass
-                outputs = self.model(images)
+                outputs = self.model(images)['out']
                 
                 # Resize to original size
                 outputs = F.interpolate(outputs, size=(2048, 2048), mode="bilinear")
