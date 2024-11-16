@@ -116,20 +116,40 @@ def visualize_test(image_path, csv_path, output_dir, metadata_file):
 
 def main():
     """
-        [check_point_csv]
+        [is_inference]
+            - inference를 시각화할 때 True
+            - validation을 시각화할 때 False
+
+        [inference_csv]
             - 시각화하고자 하는 inference 결과 파일
             - code파일 내 csv파일 경로를 가져온다
             - 예시 : efficient_unet_best_model.csv
+        [validation_csv]
+            - 시각화할 validation 결과 파일
+            - validation_result 폴더 내 csv 파일을 가져온다
+            - 예시 : val_epoch_1.csv
     """
-    check_point_csv = 'efficient_unet_best_model.csv'
+    is_inference = False
+
     metadata_csv = "../../data/meta_data.csv"
 
-    image_path = "../../data/test/DCM"
-    csv_path = f"../../code/{check_point_csv}"
-    output_dir = f"../../img/test_visualized/{check_point_csv.split('_best_model')[0]}"
-    
-    
+    if is_inference:
+        inference_csv = 'efficient_unet_best_model.csv'
+
+        image_path = "../../data/test/DCM"
+        csv_path = f"../../code/{inference_csv}"
+        output_dir = f"../../img/test_visualized/{inference_csv.split('_best_model')[0]}"
+    else:
+        validation_csv = 'val_epoch_ 1.csv'
+
+        image_path = "../../data/train/DCM"
+        csv_path = f"../../validation_result/{validation_csv}"
+        output_dir = f"../../img/val_visualized/{validation_csv}"
+
     visualize_test(image_path, csv_path, output_dir, metadata_csv)
+    
+    
+    
 
 
 if __name__ == "__main__":
