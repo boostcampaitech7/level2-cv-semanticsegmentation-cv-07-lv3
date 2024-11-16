@@ -21,10 +21,12 @@ from src.scheduler import SchedulerFactory
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Train segmentation model')
-    parser.add_argument('--config', type=str, default='torchvision_fcn_resnet50.yaml',
+    parser.add_argument('-c', '--config', type=str, default='torchvision_fcn_resnet50.yaml',
                         help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
+    parser.add_argument('-s', '--save', type=str, default='best_model.pt',
+                        help='name of the model file to save (e.g., experiment1.pt)')
     return parser.parse_args()
 
 
@@ -80,7 +82,7 @@ def main():
     wandb.init(
         project = "Segmentation", 
         entity = 'jhs7027-naver', 
-        group = 'test', 
+        group = cfg['WANDB']['GROUP'], 
         name = cfg['WANDB']['NAME'], 
         config = {
             "IMAGE_SIZE": cfg['DATASET'].get('IMAGE_SIZE'),
@@ -148,7 +150,7 @@ def main():
     optimizer = OptimizerFactory.get_optimizer(cfg['OPTIMIZER'], model.parameters())
     scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
 
-    # Setup trainer
+    # Setup trainer with model name
     trainer = Trainer(
         cfg=cfg,
         model=model,
@@ -156,7 +158,8 @@ def main():
         val_loader=valid_loader,
         criterion=criterion,
         optimizer=optimizer,
-        scheduler=scheduler
+        scheduler=scheduler,
+        model_name=args.save  # 모델 이름 전달
     )
     
     # Start training
