@@ -11,23 +11,20 @@ class SMPSegmentationModel(nn.Module):
     def _build_model(self):
         model_params = {
             'encoder_name': self.cfg['MODEL'].get('ENCODER', 'resnet50'),
-            'encoder_weights': 'imagenet' if self.cfg['MODEL']['PRETRAINED'] else None,
+            'encoder_weights': self.cfg['MODEL'].get('ENCODER_WEIGHTS', 'imagenet'),
             'in_channels': 3,
             'classes': len(self.cfg['CLASSES'])
         }
 
         architecture = self.cfg['MODEL'].get('ARCHITECTURE', 'Unet')
         
-        if architecture == 'Unet':
-            model = smp.Unet(**model_params)
-        elif architecture == 'DeepLabV3':
-            model = smp.DeepLabV3(**model_params)
-        elif architecture == 'DeepLabV3Plus':
-            model = smp.DeepLabV3Plus(**model_params)
-        elif architecture == 'FPN':
-            model = smp.FPN(**model_params)
-        else:
-            raise ValueError(f"Unsupported architecture: {architecture}")
+        # segmentation model pytorch
+        # deeplabv3, unet, unetplusplus, fpn, linknet, manet, pspnet, pan, upernet
+        try:
+            model_fn = getattr(smp, architecture)
+            model = model_fn(**model_params)
+        except AttributeError:
+            raise ValueError(f"Unsupported architecture: {architecture}. Please check if the model exists in segmentation_models_pytorch")
             
         return model
 

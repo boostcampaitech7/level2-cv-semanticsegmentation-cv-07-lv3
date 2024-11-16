@@ -1,18 +1,19 @@
 DATASET:
-  IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
-  LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
-  IMAGE_SIZE: 512  # or whatever size you want
-  BATCH_SIZE: 8
-  NUM_WORKERS: 8
+  IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"                    
+  LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"           
+  TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"                
+  IMAGE_SIZE: 512                                                      
+  BATCH_SIZE: 4                                                       
+  NUM_WORKERS: 4                                                      
 
 MODEL:
-  TYPE: "torchvision"
-  NAME: "fcn_resnet50"
-  PRETRAINED: True
+  TYPE: "torchvision"             
+  NAME: "fcn_resnet50"                                      
+  PRETRAINED: True                                             
 
 TRAIN:
   NUM_EPOCHS: 5
-  VAL_EVERY: 5
+  VAL_EVERY: 1
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
   RANDOM_SEED: 21
@@ -29,11 +30,28 @@ CLASSES: [
 
 LOSS:
   NAME: "bce"  # ['bce', 'dice', 'combined']
-  WEIGHTS: [1.0, 0.5]  # weights for combined loss
+  WEIGHTS: [1.0, 1.0]  # weights for combined loss
 
 OPTIMIZER:
-  NAME: "adam"  # ['adam', 'adamw', 'sgd']
+  NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
   LR: 1e-4
   WEIGHT_DECAY: 1e-6
   BETAS: [0.9, 0.999]  # for adam/adamw
   MOMENTUM: 0.9  # for sgd
+
+SCHEDULER:
+  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
+  STEP_SIZE: 10  # for steplr
+  MILESTONES: [10, 20, 30]  # for multisteplr
+  GAMMA: 0.95  # for exponentiallr
+  FACTOR: 0.1  # for reducelronplateau
+  PATIENCE: 10  # for reducelronplateau
+  VERBOSE: True  # for reducelronplateau
+  T_MAX: 10  # for cosineannealinglr
+  ETA_MIN: 0  # for cosineannealinglr
+
+VALIDATION:
+  THRESHOLD: 0.5  # Add threshold parameter
+
+WANDB:
+  NAME: 'torchvision_fcn_resnet50'

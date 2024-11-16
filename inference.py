@@ -10,16 +10,16 @@ from tqdm import tqdm
 import albumentations as A
 from torch.utils.data import DataLoader
 
-from src.data import XRayInferenceDataset
+from src.dataset import XRayInferenceDataset
 from utils.encode_mask import encode_mask_to_rle
 
 
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Inference segmentation model')
-    parser.add_argument('--config', type=str, default='configs/config.yaml',
+    parser.add_argument('--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='path to config file')
-    parser.add_argument('--model_path', type=str, required=True,
+    parser.add_argument('--model_path', type=str, default='best_model.pth',
                         help='path to model checkpoint')
     parser.add_argument('--output_path', type=str, default='output.csv',
                         help='path to save prediction results')
@@ -28,8 +28,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_config(config_path):
+def load_config(config_name):
     """Load config file"""
+    config_path = os.path.join('configs', config_name)
+    if not os.path.exists(config_path):
+        print(f'Config file not found: {config_path}')
+        exit(1)
+
     with open(config_path, 'r') as f:
         try:
             config = yaml.safe_load(f)

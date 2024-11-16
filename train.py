@@ -2,6 +2,7 @@ import os
 import random
 import argparse
 import yaml
+import wandb
 import numpy as np
 import torch
 import torch.nn as nn
@@ -10,24 +11,32 @@ import albumentations as A
 from torch.utils.data import DataLoader
 
 from src.models import get_model
-from src.data import XRayDataset
+from src.dataset import XRayDataset
 from src.loss import LossFactory
 from src.optimizer import OptimizerFactory
 from src.trainer import Trainer
+from src.scheduler import SchedulerFactory
 
 
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Train segmentation model')
-    parser.add_argument('--config', type=str, default='configs/config.yaml',
-                        help='path to config file')
+    parser.add_argument('-c', '--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
+                        help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
+    parser.add_argument('-s', '--save', type=str, default='best_model.pt',
+                        help='name of the model file to save (e.g., experiment1.pt)')
     return parser.parse_args()
 
 
-def load_config(config_path):
-    """Load config file"""
+def load_config(config_name):
+    """Load config file from configs directory"""
+    config_path = os.path.join('configs', config_name)
+    if not os.path.exists(config_path):
+        print(f'Config file not found: {config_path}')
+        exit(1)
+        
     with open(config_path, 'r') as f:
         try:
             config = yaml.safe_load(f)
@@ -69,6 +78,24 @@ def main():
     # Parse arguments and load config
     args = parse_args()
     cfg = load_config(args.config)
+
+    wandb.init(
+        project = "Segmentation", 
+        entity = 'jhs7027-naver', 
+        group = cfg['WANDB']['GROUP'], 
+        name = cfg['WANDB']['NAME'], 
+        config = {
+            "IMAGE_SIZE": cfg['DATASET'].get('IMAGE_SIZE'),
+            "BATCH_SIZE": cfg['DATASET'].get('BATCH_SIZE'),
+            "NUM_WORKERS": cfg['DATASET'].get('NUM_WORKERS'),
+            "ENCODER": cfg['MODEL'].get('ENCODER'),
+            "NUM_EPOCHS": cfg['TRAIN'].get('NUM_EPOCHS'),
+            "VAL_EVERY": cfg['TRAIN'].get('VAL_EVERY'),
+            "LEARNING_RATE": cfg['TRAIN'].get('LEARNING_RATE'),
+            "WEIGHT_DECAY": cfg['TRAIN'].get('WEIGHT_DECAY'),
+            "RANDOM_SEED": cfg['TRAIN'].get('RANDOM_SEED'),
+        }
+    )
     
     # Set random seed
     set_seed(cfg['TRAIN']['RANDOM_SEED'])
@@ -118,18 +145,21 @@ def main():
         checkpoint = torch.load(args.resume)
         model.load_state_dict(checkpoint['model_state_dict'])
     
-    # Setup loss function and optimizer using factories
+    # Setup loss function, optimizer, and scheduler using factories
     criterion = LossFactory.get_loss(cfg['LOSS'])
     optimizer = OptimizerFactory.get_optimizer(cfg['OPTIMIZER'], model.parameters())
-    
-    # Setup trainer
+    scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
+
+    # Setup trainer with model name
     trainer = Trainer(
         cfg=cfg,
         model=model,
         train_loader=train_loader,
         val_loader=valid_loader,
         criterion=criterion,
-        optimizer=optimizer
+        optimizer=optimizer,
+        scheduler=scheduler,
+        model_name=args.save  # 모델 이름 전달
     )
     
     # Start training
