@@ -20,6 +20,7 @@ class Trainer:
         criterion: Loss function
         optimizer: Optimizer
         scheduler: Learning rate scheduler
+        model_name: Name of the model file to save
     """
     def __init__(
         self,
@@ -29,7 +30,8 @@ class Trainer:
         val_loader: torch.utils.data.DataLoader,
         criterion: nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: object
+        scheduler: object,
+        model_name: str = 'best_model.pt'
     ):
         self.cfg = cfg
         self.model = model
@@ -48,6 +50,8 @@ class Trainer:
         os.makedirs(self.saved_dir, exist_ok=True)
         
         self.threshold = cfg['VALIDATION']['THRESHOLD']  # Default threshold of 0.5
+        
+        self.model_name = model_name
         
     def train(self) -> None:
         """Main training loop"""
@@ -70,7 +74,13 @@ class Trainer:
             # Validation phase
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
                 dice, class_dice_dict, val_loss = self._validate_epoch(epoch + 1)
-
+                
+                # Scheduler step - validation 후에 호출
+                if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    self.scheduler.step(val_loss)  # validation loss 사용
+                else:
+                    self.scheduler.step()          # 일반적인 step
+                
                 # wandb validation α
                 val_log_dict = {
                     "val_epoch": epoch + 1,
@@ -81,46 +91,45 @@ class Trainer:
                 
                 if best_dice < dice:
                     print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                    print(f"Save model in {self.saved_dir}")
+                    print(f"Save model in {self.saved_dir} as {self.model_name}")
                     best_dice = dice
-                    self.save_model(f"best_model.pt")
+                    self.save_model(self.model_name)
     
-    def _train_epoch(self, epoch: int) -> None:
+    def _train_epoch(self, epoch: int) -> float:
         """Training loop for one epoch
         
         Args:
             epoch: Current epoch number
         """
-        for step, (images, masks) in enumerate(self.train_loader):            
-            images = images.to(self.device)
-            masks = masks.to(self.device)
-            
-            # Forward pass
-            outputs = self.model(images)
-            
-            # Calculate loss
-            loss = self.criterion(outputs['out'], masks)
-            
-            # Backward pass
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            
-            # Print progress
-            if (step + 1) % 25 == 0:
-                print(
-                    f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | '
-                    f'Epoch [{epoch+1}/{self.cfg["TRAIN"]["NUM_EPOCHS"]}], '
-                    f'Step [{step+1}/{len(self.train_loader)}], '
-                    f'Loss: {round(loss.item(),4)}'
+        total_loss = 0
+        with tqdm(total=len(self.train_loader), desc=f'[Training Epoch {epoch+1}]', disable=False) as pbar:
+            for step, (images, masks) in enumerate(self.train_loader):            
+                images = images.to(self.device)
+                masks = masks.to(self.device)
+                
+                # Forward pass
+                outputs = self.model(images)
+                
+                # Calculate loss
+                loss = self.criterion(outputs['out'], masks)
+                total_loss += loss.item()
+                
+                # Backward pass
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                
+                # Update progress bar
+                pbar.update(1)
+                pbar.set_postfix(
+                    loss=f'{loss.item():.4f}',
+                    avg_loss=f'{total_loss/(step+1):.4f}'
                 )
         
-        epoch_loss = loss.item()
+        epoch_loss = total_loss / len(self.train_loader)
         
-        # Always step the scheduler
-        if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            self.scheduler.step(epoch_loss)
-        else:
+        # ReduceLROnPlateau가 아닌 스케줄러의 경우 여기서 step
+        if not isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             self.scheduler.step()
         
         return epoch_loss
