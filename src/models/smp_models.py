@@ -11,7 +11,7 @@ class SMPSegmentationModel(nn.Module):
     def _build_model(self):
         model_params = {
             'encoder_name': self.cfg['MODEL'].get('ENCODER', 'resnet50'),
-            'encoder_weights': 'imagenet' if self.cfg['MODEL']['PRETRAINED'] else None,
+            'encoder_weights': self.cfg['MODEL'].get('ENCODER_WEIGHTS', 'imagenet'),
             'in_channels': 3,
             'classes': len(self.cfg['CLASSES'])
         }
