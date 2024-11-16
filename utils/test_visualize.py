@@ -101,6 +101,7 @@ def visualize_test(image_path, csv_path, output_dir, metadata_file):
             f"gender: {gender_eng}\n"
             f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
             f"height: {metadata_row['키(신장)'].values[0]}\n"
+            f"issue: {metadata_row['Unnamed: 5'].values[0]}\n"
         )
 
         y0, dy = 50, 50
