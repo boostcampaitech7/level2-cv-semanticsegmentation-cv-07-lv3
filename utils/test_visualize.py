@@ -69,9 +69,13 @@ def visualize_segmentation(image_path, csv_path, output_dir):
 
 
 
-if __name__ == "__main__":
+def main():
     image_path = "/data/ephemeral/home/data/test/DCM"
     csv_path = "/data/ephemeral/home/code/efficientb0_UnetPlusPlus_best_model.csv"
     output_dir = "/data/ephemeral/home/img/efficientb0_UnetPlusPlus_fold0"
     
     visualize_segmentation(image_path, csv_path, output_dir)
+
+
+if __name__ == "__main__":
+    main()
