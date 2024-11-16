@@ -86,6 +86,7 @@ def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_fil
                                 f"gender: {gender_eng}\n"
                                 f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
                                 f"height: {metadata_row['키(신장)'].values[0]}\n"
+                                f"issue: {metadata_row['Unnamed: 5'].values[0]}\n"
                                 f"class: {len(class_count)}/{annotation_count}"
                             )
                             ax.text(0.01, 0.99, metadata_text, transform=ax.transAxes, fontsize=12, color='white',
