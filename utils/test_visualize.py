@@ -63,8 +63,8 @@ def visualize_segmentation(image_path, csv_path, output_dir):
         
         result = cv2.addWeighted(image, 0.7, colored_mask, 0.3, 0)
         
-        
-        output_path = os.path.join(output_dir, image_name)
+        new_image_name = f"{os.path.basename(os.path.dirname(full_image_path))}_{image_name}"
+        output_path = os.path.join(output_dir, new_image_name)
         cv2.imwrite(output_path, result)
 
 
