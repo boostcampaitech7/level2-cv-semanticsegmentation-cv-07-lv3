@@ -68,11 +68,18 @@ def visualize_segmentation(image_path, csv_path, output_dir):
         cv2.imwrite(output_path, result)
 
 
-
 def main():
-    image_path = "/data/ephemeral/home/data/test/DCM"
-    csv_path = "/data/ephemeral/home/code/efficientb0_UnetPlusPlus_best_model.csv"
-    output_dir = "/data/ephemeral/home/img/efficientb0_UnetPlusPlus_fold0"
+    """
+        [check_point_csv]
+            - 시각화하고자 하는 inference 결과 파일
+            - code파일 내 csv파일 경로를 가져온다
+            - 예시 : efficient_unet_best_model.csv
+    """
+    check_point_csv = 'efficient_unet_best_model.csv'
+
+    image_path = "../../data/test/DCM"
+    csv_path = f"../../code/{check_point_csv}"
+    output_dir = f"../../img/test_visualized/{check_point_csv.split('_best_model')[0]}"
     
     visualize_segmentation(image_path, csv_path, output_dir)
 
