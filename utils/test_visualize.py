@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from resources import PALETTE
-from utils_for_visualizer import gender_to_eng
+from utils_for_visualizer import reformat_metadata
 
 
 def find_image_in_subfolders(base_path, image_name):
@@ -81,28 +81,13 @@ def visualize_test(image_path, csv_path, output_dir, metadata_file):
         id_folder = os.path.basename(os.path.dirname(full_image_path))
         metadata_row = metadata[metadata['ID'].astype(str).str.zfill(3) == id_folder[2:].zfill(3)]
 
-        if metadata_row.empty:
-            print(f"Metadata not found for image: {id_folder}/{image_name}")
-            continue
+        if not metadata_row.empty:
+            metadata_text = reformat_metadata(metadata_row)
 
-        metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
-        gender_kor = metadata_row['성별'].values[0]
-
-        gender_eng = gender_to_eng(gender_kor)
-
-        metadata_text = (
-            f"ID: {metadata_row['ID'].values[0]} \n"
-            f"age: {metadata_row['나이'].values[0]}\n"
-            f"gender: {gender_eng}\n"
-            f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
-            f"height: {metadata_row['키(신장)'].values[0]}\n"
-            f"issue: {metadata_row['Unnamed: 5'].values[0]}\n"
-        )
-
-        y0, dy = 50, 50
-        for i, line in enumerate(metadata_text.split('\n')):
-            y = y0 + i * dy
-            cv2.putText(result, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
+            y0, dy = 50, 50
+            for i, line in enumerate(metadata_text.split('\n')):
+                y = y0 + i * dy
+                cv2.putText(result, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 2)
 
         new_image_name = f"{id_folder}_{image_name}"
         output_path = os.path.join(output_dir, new_image_name)
@@ -119,12 +104,13 @@ def main():
             - 시각화하고자 하는 inference 결과 파일
             - code파일 내 csv파일 경로를 가져온다
             - 예시 : efficient_unet_best_model.csv
+
         [validation_csv]
             - 시각화할 validation 결과 파일
             - validation_result 폴더 내 csv 파일을 가져온다
             - 예시 : val_epoch_1.csv
     """
-    is_inference = False
+    is_inference = True
 
     metadata_csv = "../../data/meta_data.csv"
 

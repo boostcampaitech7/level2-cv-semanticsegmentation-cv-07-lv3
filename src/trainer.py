@@ -10,7 +10,7 @@ import time
 from datetime import timedelta
 import pandas as pd
 import numpy as np
-from repo.utils.utils_for_visualizer import encode_mask_to_rle
+from utils.utils_for_visualizer import encode_mask_to_rle
 from utils.resources import CLASSES
 
 class Trainer:

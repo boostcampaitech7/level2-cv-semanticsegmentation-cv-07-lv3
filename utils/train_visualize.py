@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 import random
-from utils_for_visualizer import gender_to_eng
+from utils_for_visualizer import reformat_metadata
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -70,21 +70,7 @@ def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_fil
                         metadata_row = metadata[metadata['ID'].astype(str).str.zfill(3) == image_id]
 
                         if not metadata_row.empty:
-                            metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
-                            gender_kor = metadata_row['성별'].values[0]
-
-                            gender_eng = gender_to_eng(gender_kor)
-
-                            # 폰트에 한국어 지원이 안돼서 영어로 출력 필요
-                            metadata_text = (
-                                f"ID: {metadata_row['ID'].values[0]} \n"
-                                f"age: {metadata_row['나이'].values[0]}\n"
-                                f"gender: {gender_eng}\n"
-                                f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
-                                f"height: {metadata_row['키(신장)'].values[0]}\n"
-                                f"issue: {metadata_row['Unnamed: 5'].values[0]}\n"
-                                f"class: {len(class_count)}/{annotation_count}"
-                            )
+                            metadata_text = reformat_metadata(metadata_row, class_count, annotation_count)
                             ax.text(0.01, 0.99, metadata_text, transform=ax.transAxes, fontsize=12, color='white',
                                     ha='left', va='top')
 

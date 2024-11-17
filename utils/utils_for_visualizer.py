@@ -22,3 +22,25 @@ def gender_to_eng(kor):
         return 'male'
     else:
         return 'unknown'
+    
+
+def reformat_metadata(metadata_row, class_count=0, annotation_count=0):
+    metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
+    gender_kor = metadata_row['성별'].values[0]
+
+    gender_eng = gender_to_eng(gender_kor)
+
+    # 폰트에 한국어 지원이 안돼서 영어로 출력 필요
+    metadata_text = (
+        f"ID: {metadata_row['ID'].values[0]} \n"
+        f"age: {metadata_row['나이'].values[0]}\n"
+        f"gender: {gender_eng}\n"
+        f"weight: {metadata_row['체중(몸무게)'].values[0]}\n"
+        f"height: {metadata_row['키(신장)'].values[0]}\n"
+        f"issue: {metadata_row['Unnamed: 5'].values[0]}\n"
+    )
+
+    if class_count > 0:
+        metadata_text += f"class: {len(class_count)}/{annotation_count}"
+    
+    return metadata_text
