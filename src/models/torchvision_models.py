@@ -11,18 +11,16 @@ class TorchvisionSegmentationModel(nn.Module):
     def _build_model(self):
         model_name = self.cfg['MODEL'].get('NAME', 'fcn_resnet50')
         
-        if model_name == 'fcn_resnet50':
-            model = models.segmentation.fcn_resnet50(
-                pretrained=self.cfg['MODEL']['PRETRAINED']
-            )
-        elif model_name == 'deeplabv3_resnet50':
-            model = models.segmentation.deeplabv3_resnet50(
-                pretrained=self.cfg['MODEL']['PRETRAINED']
-            )
-        else:
-            raise ValueError(f"Unsupported model name: {model_name}")
+        # torchvision segmentation models
+        # fcn : fcn_resnet50, fcn_resnet101
+        # deeplabv3 : deeplabv3_resnet50, deeplabv3_resnet101, deeplabv3_mobilenet_v3_large
+        try:
+            model_fn = getattr(models.segmentation, model_name)
+            model = model_fn(pretrained=self.cfg['MODEL']['PRETRAINED'])
+        except AttributeError:
+            raise ValueError(f"Unsupported model name: {model_name}. Please check if the model exists in torchvision.models.segmentation")
         
-        # Modify the classifier for our number of classes
+        # Modify the classifier based on model architecture
         if model_name.startswith('fcn'):
             model.classifier[4] = nn.Conv2d(512, len(self.cfg['CLASSES']), kernel_size=1)
         elif model_name.startswith('deeplabv3'):

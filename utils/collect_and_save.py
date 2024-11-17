@@ -3,6 +3,10 @@ import shutil
 
 def collect_and_save_images(train_folder, test_folder, output_folder):
     
+    """
+        train과 test에 대한 이미지를 모두 한 폴더로 저장해주는 함수
+    """
+
     train_output_folder = os.path.join(output_folder, 'train')
     test_output_folder = os.path.join(output_folder, 'test')
     os.makedirs(train_output_folder, exist_ok=True)

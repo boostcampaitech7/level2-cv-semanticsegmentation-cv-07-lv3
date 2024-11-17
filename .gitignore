@@ -8,13 +8,10 @@
 .rest-client
 .bash_history
 
-data/
-mmsegmentation
-code/baseline*
-*.csv
-img/
-wandb
-code/checkpoints/
+checkpoints/
+code/
+wandb/
+
 
 ### Linux ###
 

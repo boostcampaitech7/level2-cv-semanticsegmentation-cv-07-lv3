@@ -10,15 +10,16 @@ from tqdm import tqdm
 import albumentations as A
 from torch.utils.data import DataLoader
 
-from src.data import XRayInferenceDataset
+from src.dataset import XRayInferenceDataset
+from utils.utils_for_visualizer import encode_mask_to_rle, decode_rle_to_mask
 
 
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Inference segmentation model')
-    parser.add_argument('--config', type=str, default='configs/config.yaml',
+    parser.add_argument('--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='path to config file')
-    parser.add_argument('--model_path', type=str, required=True,
+    parser.add_argument('--model_path', type=str, default='best_model.pth',
                         help='path to model checkpoint')
     parser.add_argument('--output_path', type=str, default='output.csv',
                         help='path to save prediction results')
@@ -27,8 +28,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_config(config_path):
+def load_config(config_name):
     """Load config file"""
+    config_path = os.path.join('configs', config_name)
+    if not os.path.exists(config_path):
+        print(f'Config file not found: {config_path}')
+        exit(1)
+
     with open(config_path, 'r') as f:
         try:
             config = yaml.safe_load(f)
@@ -36,38 +42,6 @@ def load_config(config_path):
             print(f'Error loading config file: {e}')
             exit(1)
     return config
-
-
-def encode_mask_to_rle(mask):
-    """
-    mask: numpy array binary mask 
-    1 - mask 
-    0 - background
-    Returns encoded run length 
-    """
-    pixels = mask.flatten()
-    pixels = np.concatenate([[0], pixels, [0]])
-    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
-    runs[1::2] -= runs[::2]
-    return ' '.join(str(x) for x in runs)
-
-
-def decode_rle_to_mask(rle, height, width):
-    """
-    rle: run-length encoded string
-    height, width: dimensions of the mask
-    Returns decoded binary mask
-    """
-    s = rle.split()
-    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
-    starts -= 1
-    ends = starts + lengths
-    img = np.zeros(height * width, dtype=np.uint8)
-    
-    for lo, hi in zip(starts, ends):
-        img[lo:hi] = 1
-    
-    return img.reshape(height, width)
 
 
 class Inferencer:

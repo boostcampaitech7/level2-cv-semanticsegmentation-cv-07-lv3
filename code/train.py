@@ -8,6 +8,15 @@ from functools import partial
 
 # external library
 import cv2
+import importlib
+import subprocess
+package_name = "wandb"
+
+try:
+    importlib.import_module(package_name)
+except ImportError:
+    subprocess.check_call(["pip", "install", package_name])
+
 import wandb
 import numpy as np
 import pandas as pd
