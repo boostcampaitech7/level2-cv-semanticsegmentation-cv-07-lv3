@@ -133,7 +133,7 @@ def main():
         dataset=valid_dataset,
         batch_size=cfg['DATASET']['BATCH_SIZE'],
         shuffle=False,
-        num_workers=0,  # Prevent memory issues during validation
+        num_workers=cfg['DATASET']['NUM_WORKERS'],  # Prevent memory issues during validation
         drop_last=False
     )
     
