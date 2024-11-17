@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from resources import PALETTE
-from utils_for_visualizer import reformat_metadata
+from utils_for_visualizer import reformat_metadata, decode_rle_to_mask
 
 
 def find_image_in_subfolders(base_path, image_name):
@@ -14,16 +14,6 @@ def find_image_in_subfolders(base_path, image_name):
             return os.path.join(root, image_name)
     return None
 
-def rle_decode(mask_rle, shape):
-    """RLE 인코딩된 마스크를 디코딩합니다."""
-    s = mask_rle.split()
-    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
-    starts -= 1
-    ends = starts + lengths
-    img = np.zeros(shape[0]*shape[1], dtype=np.uint8)
-    for lo, hi in zip(starts, ends):
-        img[lo:hi] = 1
-    return img.reshape(shape)
 
 def visualize_test(image_path, csv_path, output_dir, metadata_file):
     """세그멘테이션 결과를 시각화합니다."""
@@ -54,7 +44,10 @@ def visualize_test(image_path, csv_path, output_dir, metadata_file):
         for _, row in image_df.iterrows():
             if pd.isna(row['rle']):
                 continue
-            class_mask = rle_decode(row['rle'], image.shape[:2])
+            
+            height, width = image.shape[:2]
+            class_mask = decode_rle_to_mask(row['rle'], height, width)
+            
             masks.append(class_mask)
             class_names.append(row['class'])
         
