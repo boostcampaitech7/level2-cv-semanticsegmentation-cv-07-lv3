@@ -11,7 +11,7 @@ import albumentations as A
 from torch.utils.data import DataLoader
 
 from src.dataset import XRayInferenceDataset
-from utils.encode_mask import encode_mask_to_rle
+from repo.utils.utils_for_visualizer import encode_mask_to_rle
 
 
 def parse_args():
