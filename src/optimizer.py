@@ -3,14 +3,16 @@ import torch.optim as optim
 import importlib
 import os
 
-package_name = "lion-pytorch"
+packages = ["lion-pytorch", "torch-optimizer"]
 
-try:
-    importlib.import_module(package_name.replace("-", "_"))
-except ImportError:
-    os.system(f"pip install {package_name}")
+for package_name in packages:
+    try:
+        importlib.import_module(package_name.replace("-", "_"))
+    except ImportError:
+        os.system(f"pip install {package_name}")
     
 from lion_pytorch import Lion
+from torch_optimizer import Lookahead
 
 class OptimizerFactory:
     """Factory class for creating optimizers"""
@@ -42,12 +44,19 @@ class OptimizerFactory:
                 weight_decay=weight_decay
             )
         elif optimizer_name == 'lion':
-            return Lion(
+            base_optimizer = Lion(
                 model_parameters,
                 lr=lr,
                 weight_decay=weight_decay,
                 betas=optimizer_config.get('BETAS', (0.9, 0.99)),
                 use_triton=optimizer_config.get('USE_TRITON', False)
             )
+            if optimizer_config.get('USE_LOOKAHEAD', False):
+                return Lookahead(
+                    base_optimizer,
+                    k=optimizer_config.get('LOOKAHEAD_K', 5),
+                    alpha=optimizer_config.get('LOOKAHEAD_ALPHA', 0.5)
+                )
+            return base_optimizer
         else:
             raise NotImplementedError(f"Optimizer {optimizer_name} not implemented")

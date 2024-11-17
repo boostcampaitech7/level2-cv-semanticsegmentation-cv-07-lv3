@@ -1,3 +1,7 @@
+WANDB:
+  GROUP: 'test'
+  NAME: 'smp_unetplusplus_efficientb0'
+
 DATASET:
   IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
@@ -14,20 +18,11 @@ MODEL:
 
 TRAIN:
   NUM_EPOCHS: 5
-  VAL_EVERY: 1
+  VAL_EVERY: 5
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
   RANDOM_SEED: 21
   SAVED_DIR: "checkpoints"
-
-CLASSES: [
-  'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
-  'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
-  'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
-  'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
-  'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
-  'Triquetrum', 'Pisiform', 'Radius', 'Ulna'
-]
 
 LOSS:
   NAME: "bce"  # ['bce', 'dice', 'combined']
@@ -40,6 +35,9 @@ OPTIMIZER:
   BETAS: [0.9, 0.999]  # for adam/adamw/lion
   USE_TRITON: False  # for lion
   MOMENTUM: 0.9  # for sgd
+  USE_LOOKAHEAD: False  # for lion (True -> Lookahead_Lion)
+  LOOKAHEAD_K: 5  # for Lookahead_Lion
+  LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
   NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
@@ -55,6 +53,11 @@ SCHEDULER:
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
 
-WANDB:
-  GROUP: 'UNet++'
-  NAME: 'smp_unetplusplus_efficientb0'
+CLASSES: [
+  'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
+  'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
+  'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
+  'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
+  'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
+  'Triquetrum', 'Pisiform', 'Radius', 'Ulna'
+]
