@@ -94,8 +94,30 @@ def main():
             "LEARNING_RATE": cfg['TRAIN'].get('LEARNING_RATE'),
             "WEIGHT_DECAY": cfg['TRAIN'].get('WEIGHT_DECAY'),
             "RANDOM_SEED": cfg['TRAIN'].get('RANDOM_SEED'),
+            "LOSS_NAME": cfg['LOSS'].get('NAME'),
+            "LOSS_WEIGHTS": cfg['LOSS'].get('WEIGHTS'),
+            "OPTIMIZER_NAME": cfg['OPTIMIZER'].get('NAME'),
+            "OPTIMIZER_LR": cfg['OPTIMIZER'].get('LR'),
+            "OPTIMIZER_WEIGHT_DECAY": cfg['OPTIMIZER'].get('WEIGHT_DECAY'),
+            "OPTIMIZER_BETAS": cfg['OPTIMIZER'].get('BETAS'),
+            "OPTIMIZER_USE_TRITON": cfg['OPTIMIZER'].get('USE_TRITON'),
+            "OPTIMIZER_MOMENTUM": cfg['OPTIMIZER'].get('MOMENTUM'),
+            "OPTIMIZER_USE_LOOKAHEAD": cfg['OPTIMIZER'].get('USE_LOOKAHEAD'),
+            "OPTIMIZER_LOOKAHEAD_K": cfg['OPTIMIZER'].get('LOOKAHEAD_K'),
+            "OPTIMIZER_LOOKAHEAD_ALPHA": cfg['OPTIMIZER'].get('LOOKAHEAD_ALPHA'),
+            "SCHEDULER_NAME": cfg['SCHEDULER'].get('NAME'),
+            "SCHEDULER_STEP_SIZE": cfg['SCHEDULER'].get('STEP_SIZE'),
+            "SCHEDULER_MILESTONES": cfg['SCHEDULER'].get('MILESTONES'),
+            "SCHEDULER_GAMMA": cfg['SCHEDULER'].get('GAMMA'),
+            "SCHEDULER_FACTOR": cfg['SCHEDULER'].get('FACTOR'),
+            "SCHEDULER_PATIENCE": cfg['SCHEDULER'].get('PATIENCE'),
+            "SCHEDULER_VERBOSE": cfg['SCHEDULER'].get('VERBOSE'),
+            "SCHEDULER_T_MAX": cfg['SCHEDULER'].get('T_MAX'),
+            "SCHEDULER_ETA_MIN": cfg['SCHEDULER'].get('ETA_MIN'),
+            "VALIDATION_THRESHOLD": cfg['VALIDATION'].get('THRESHOLD'),
         }
     )
+    
     
     # Set random seed
     set_seed(cfg['TRAIN']['RANDOM_SEED'])
