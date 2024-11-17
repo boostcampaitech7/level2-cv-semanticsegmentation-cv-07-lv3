@@ -56,5 +56,5 @@ VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
 
 WANDB:
-  GROUP: 'hyungjoon'
+  GROUP: 'UNet++'
   NAME: 'smp_unetplusplus_efficientb0'

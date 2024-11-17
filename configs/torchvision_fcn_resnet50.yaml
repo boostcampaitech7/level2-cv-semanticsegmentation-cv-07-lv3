@@ -54,4 +54,5 @@ VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
 
 WANDB:
+  GROUP: 'FCN'
   NAME: 'torchvision_fcn_resnet50'
