@@ -17,15 +17,27 @@ from utils.utils_for_visualizer import encode_mask_to_rle, decode_rle_to_mask
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Inference segmentation model')
-    parser.add_argument('--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
+    parser.add_argument('-c', '--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='path to config file')
-    parser.add_argument('--model_path', type=str, default='best_model.pth',
+    parser.add_argument('-m', '--model_path', type=str, default='best_model.pt',
                         help='path to model checkpoint')
-    parser.add_argument('--output_path', type=str, default='output.csv',
+    parser.add_argument('-o', '--output_path', type=str, default='output.csv',
                         help='path to save prediction results')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='threshold for binary prediction')
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    # Add checkpoints directory to model path if not already specified
+    if not os.path.dirname(args.model_path):
+        args.model_path = os.path.join('checkpoints', args.model_path)
+    
+    # Add results directory to output path if not already specified
+    results_dir = 'results'
+    os.makedirs(results_dir, exist_ok=True)  # Create results directory if it doesn't exist
+    if not os.path.dirname(args.output_path):
+        args.output_path = os.path.join(results_dir, args.output_path)
+    
+    return args
 
 
 def load_config(config_name):
@@ -70,7 +82,10 @@ class Inferencer:
                 images = images.to(self.device)
                 
                 # Forward pass
-                outputs = self.model(images)['out']
+                outputs = self.model(images)
+                # Handle dictionary output - get the main prediction
+                if isinstance(outputs, dict):
+                    outputs = outputs['out']  # or the appropriate key for your model's output
                 
                 # Resize to original size
                 outputs = F.interpolate(outputs, size=(2048, 2048), mode="bilinear")
