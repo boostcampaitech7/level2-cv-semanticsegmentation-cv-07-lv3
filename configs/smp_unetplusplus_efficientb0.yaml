@@ -88,7 +88,7 @@ OPTIMIZER:
   LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
-  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
+  NAME: "steplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
   GAMMA: 0.95  # for exponentiallr
@@ -97,6 +97,9 @@ SCHEDULER:
   VERBOSE: True  # for reducelronplateau
   T_MAX: 10  # for cosineannealinglr
   ETA_MIN: 0  # for cosineannealinglr
+  T_0: 10  # for cosineannealingwarmrestarts
+  T_MULT: 1  # for cosineannealingwarmrestarts
+  ETA_MIN: 0  # for cosineannealingwarmrestarts
 
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter
