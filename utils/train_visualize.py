@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 import random
+from utils_for_visualizer import gender_to_eng
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -72,12 +73,7 @@ def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_fil
                             metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
                             gender_kor = metadata_row['성별'].values[0]
 
-                            if '여' in gender_kor:
-                                gender_eng = 'female'
-                            elif '남' in gender_kor:
-                                gender_eng = 'male'
-                            else:
-                                gender_eng = 'unknown'
+                            gender_eng = gender_to_eng(gender_kor)
 
                             # 폰트에 한국어 지원이 안돼서 영어로 출력 필요
                             metadata_text = (

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from resources import PALETTE
+from utils_for_visualizer import gender_to_eng
 
 
 def find_image_in_subfolders(base_path, image_name):
@@ -87,13 +88,7 @@ def visualize_test(image_path, csv_path, output_dir, metadata_file):
         metadata_row = metadata_row.fillna("N/A")  # NaN 값을 "N/A"로 대체
         gender_kor = metadata_row['성별'].values[0]
 
-        if '여' in gender_kor:
-            gender_eng = 'female'
-        elif '남' in gender_kor:
-            gender_eng = 'male'
-        else:
-            gender_eng = 'unknown'
-            
+        gender_eng = gender_to_eng(gender_kor)
 
         metadata_text = (
             f"ID: {metadata_row['ID'].values[0]} \n"
