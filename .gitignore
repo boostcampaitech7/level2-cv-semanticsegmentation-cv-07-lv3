@@ -11,6 +11,8 @@
 checkpoints/
 code/
 wandb/
+results/
+validation_result/
 
 
 ### Linux ###
