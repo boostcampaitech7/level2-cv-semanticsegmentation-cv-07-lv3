@@ -126,12 +126,13 @@ def get_transforms(cfg):
     return train_transform, val_transform
 
 
-def main():
+def main(args=None):
     """Main training function"""
     # Parse arguments and load config
-    args = parse_args()
+    if args is None:
+        args = parse_args()
     cfg = load_config(args.config)
-
+    
     wandb.init(
         project = "Segmentation", 
         entity = 'jhs7027-naver', 

@@ -102,10 +102,11 @@ class Inferencer:
         return rles, filename_and_class
 
 
-def main():
+def main(args=None):
     """Main inference function"""
     # Parse arguments and load config
-    args = parse_args()
+    if args is None:
+        args = parse_args()
     cfg = load_config(args.config)
     
     # Setup dataset and dataloader
