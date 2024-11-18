@@ -25,6 +25,7 @@ class Trainer:
         optimizer: Optimizer
         scheduler: Learning rate scheduler
         model_name: Name of the model file to save
+        config_name: Name of the configuration file
     """
     def __init__(
         self,
@@ -35,7 +36,8 @@ class Trainer:
         criterion: nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: object,
-        model_name: str = 'best_model.pt'
+        model_name: str = 'best_model.pt',
+        config_name: str = 'default'
     ):
         self.cfg = cfg
         self.model = model
@@ -57,6 +59,12 @@ class Trainer:
         
         self.model_name = model_name
         
+        # Setup val_log directory
+        self.val_log_dir = os.path.join('val_log')
+        os.makedirs(self.val_log_dir, exist_ok=True)
+        
+        self.config_name = config_name
+        
     def train(self) -> None:
         """Main training loop"""
         self.model.train()
@@ -77,7 +85,7 @@ class Trainer:
             
             # Validation phase
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
-                dice, class_dice_dict, val_loss = self._validate_epoch(epoch + 1)
+                dice, class_dice_dict, val_loss, val_results = self._validate_epoch(epoch + 1)
                 
                 # Scheduler step - validation 후에 호출
                 if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -98,6 +106,18 @@ class Trainer:
                     print(f"Save model in {self.saved_dir} as {self.model_name}")
                     best_dice = dice
                     self.save_model(self.model_name)
+                    
+                    # Save validation results to CSV only for best model
+                    self._save_validation_results(val_results, epoch + 1)
+                    
+                    # Save best dice scores
+                    val_log_file = os.path.join(self.val_log_dir, f'{self.config_name}.txt')
+                    with open(val_log_file, 'w') as f:
+                        f.write(f"Best model performance at epoch {epoch + 1}\n")
+                        f.write(f"Average Dice Score: {dice:.4f}\n\n")
+                        f.write("Per-class Dice Scores:\n")
+                        for class_name, score in class_dice_dict.items():
+                            f.write(f"{class_name}: {score:.4f}\n")
     
     def _train_epoch(self, epoch: int) -> float:
         """Training loop for one epoch
@@ -138,7 +158,7 @@ class Trainer:
         
         return epoch_loss
     
-    def _validate_epoch(self, epoch: int) -> Tuple[float, Dict, float]:
+    def _validate_epoch(self, epoch: int) -> Tuple[float, Dict, float, Dict]:
         """Validation loop for one epoch
         
         Args:
@@ -149,6 +169,7 @@ class Trainer:
             - Average Dice coefficient across all classes
             - Dictionary of per-class Dice scores
             - Average validation loss
+            - Validation results
         """
         val_start = time.time()
         self.model.eval()
@@ -221,25 +242,19 @@ class Trainer:
             f"{c}'s dice score": d.item() 
             for c, d in zip(self.cfg['CLASSES'], dices_per_class)
         }
-        output_path = '../validation_result'
-        output_csv = f'/val_epoch_{epoch:2d}.csv'
-
-        if not os.path.exists(output_path):
-            os.makedirs(output_path, exist_ok=True)
-
+        
+        # Split filename_and_class into separate lists
         filename, classes = zip(*[x.rsplit("_", 1) for x in filename_and_class])
         image_name = [os.path.basename(f) for f in filename]
-
- 
-        df = pd.DataFrame({
-            "image_name": image_name,
-            "class": classes,
-            "rle": rles,
-        })
         
-        df.to_csv(output_path + output_csv, index=False)
+        # Instead of saving CSV here, return the necessary data
+        val_results = {
+            'image_name': image_name,
+            'classes': classes,
+            'rles': rles,
+        }
         
-        return avg_dice, class_dice_dict, avg_loss
+        return avg_dice, class_dice_dict, avg_loss, val_results
     
     @staticmethod
     def dice_coef(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
@@ -269,3 +284,34 @@ class Trainer:
         """
         output_path = os.path.join(self.saved_dir, filename)
         torch.save(self.model, output_path)
+    
+    def _save_validation_results(self, val_results: Dict, epoch: int) -> None:
+        """Save validation results to CSV
+        
+        Args:
+            val_results: Dictionary containing validation results
+            epoch: Current epoch number
+        """
+        # Create base validation result directory
+        base_path = '../validation_result'
+        if not os.path.exists(base_path):
+            os.makedirs(base_path, exist_ok=True)
+        
+        # Create config-specific directory
+        config_path = os.path.join(base_path, self.config_name)
+        if not os.path.exists(config_path):
+            os.makedirs(config_path, exist_ok=True)
+        
+        output_csv = f'val_epoch_{epoch:02d}.csv'
+        
+        # Complete output path
+        output_path = os.path.join(config_path, output_csv)
+        
+        # Save to CSV
+        df = pd.DataFrame({
+            "image_name": val_results['image_name'],
+            "class": val_results['classes'],
+            "rle": val_results['rles'],
+        })
+        
+        df.to_csv(output_path, index=False)
