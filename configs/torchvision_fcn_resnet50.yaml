@@ -8,7 +8,8 @@ DATASET:
   TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"                
   IMAGE_SIZE: 512                                                      
   BATCH_SIZE: 4                                                       
-  NUM_WORKERS: 4                                                      
+  NUM_WORKERS: 4
+  FOLD: 0                                                     
 
 MODEL:
   TYPE: "torchvision"             
