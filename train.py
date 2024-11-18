@@ -226,7 +226,7 @@ def main(args=None):
     optimizer = OptimizerFactory.get_optimizer(cfg['OPTIMIZER'], model.parameters())
     scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
 
-    # Setup trainer with model name
+    # Setup trainer with model name and config name
     trainer = Trainer(
         cfg=cfg,
         model=model,
@@ -235,7 +235,8 @@ def main(args=None):
         criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
-        model_name=args.save  # 모델 이름 전달
+        model_name=args.save,  
+        config_name=os.path.splitext(args.config)[0]  # Add config_name parameter
     )
     
     # Start training

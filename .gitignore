@@ -12,7 +12,7 @@ checkpoints/
 code/
 wandb/
 results/
-validation_result/
+val_log/
 
 
 ### Linux ###

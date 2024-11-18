@@ -33,6 +33,9 @@ class XRayDataset(Dataset):
         self.image_root = cfg['DATASET']['IMAGE_ROOT']
         self.label_root = cfg['DATASET']['LABEL_ROOT']
         
+        # Get validation fold from config
+        self.K_fold = cfg['DATASET'].get('FOLD', 0)  # Default to 0 if not specified
+        
         # Initialize dataset
         self.filenames, self.labelnames = self._init_dataset()
 
@@ -88,14 +91,15 @@ class XRayDataset(Dataset):
         
         for i, (x, y) in enumerate(gkf.split(_filenames, ys, groups)):
             if self.is_train:
-                if i == 0:  # Use fold 0 as validation
+                if i == self.K_fold:  # Use fold 0 as validation
                     continue
                 filenames += list(_filenames[y])
                 labelnames += list(_labelnames[y])
             else:
-                filenames = list(_filenames[y])
-                labelnames = list(_labelnames[y])
-                break
+                if i == self.K_fold:
+                    filenames = list(_filenames[y])
+                    labelnames = list(_labelnames[y])
+                    break
                 
         return filenames, labelnames
 
