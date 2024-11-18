@@ -24,6 +24,54 @@ TRAIN:
   RANDOM_SEED: 21
   SAVED_DIR: "checkpoints"
 
+AUGMENTATION:
+  HORIZONTAL_FLIP:
+    ENABLED: False
+    P: 0.5
+
+  VERTICAL_FLIP:
+    ENABLED: False
+    P: 0.5
+
+  RANDOM_BRIGHTNESS_CONTRAST:
+    ENABLED: False
+    BRIGHTNESS_LIMIT: 0.2
+    CONTRAST_LIMIT: 0.2
+    P: 0.5
+
+  RANDOM_ROTATE:
+    ENABLED: False
+    LIMIT: 15
+    P: 0.5
+
+  GAUSSIAN_NOISE:
+    ENABLED: False
+    VAR_LIMIT: [10.0, 50.0]
+    P: 0.3
+
+  CLAHE:
+    ENABLED: False
+    CLIP_LIMIT: 4.0
+    P: 0.5
+    
+  RANDOM_GAMMA:
+    ENABLED: False
+    GAMMA_LIMIT: [80, 120]
+    P: 0.3
+
+  ELASTIC_TRANSFORM:
+    ENABLED: False
+    ALPHA: 120
+    SIGMA: 120 * 0.05
+    ALPHA_AFFINE: 120 * 0.03
+    P: 0.3
+
+  GRID_DISTORTION:
+    ENABLED: False
+    NUM_STEPS: 5
+    DISTORT_LIMIT: 0.3
+    P: 0.3
+    
 LOSS:
   NAME: "bce"  # ['bce', 'dice', 'combined']
   WEIGHTS: [1.0, 1.0]  # weights for combined loss
@@ -40,7 +88,7 @@ OPTIMIZER:
   LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
-  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
+  NAME: "steplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
   GAMMA: 0.95  # for exponentiallr
@@ -49,6 +97,9 @@ SCHEDULER:
   VERBOSE: True  # for reducelronplateau
   T_MAX: 10  # for cosineannealinglr
   ETA_MIN: 0  # for cosineannealinglr
+  T_0: 10  # for cosineannealingwarmrestarts
+  T_MULT: 1  # for cosineannealingwarmrestarts
+  ETA_MIN: 0  # for cosineannealingwarmrestarts
 
 VALIDATION:
   THRESHOLD: 0.5  # Add threshold parameter

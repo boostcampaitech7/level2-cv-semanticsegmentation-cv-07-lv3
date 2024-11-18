@@ -4,7 +4,8 @@ from torch.optim.lr_scheduler import (
     MultiStepLR,
     ExponentialLR,
     CosineAnnealingLR,
-    ReduceLROnPlateau
+    ReduceLROnPlateau,
+    CosineAnnealingWarmRestarts
 )
 
 class SchedulerFactory:
@@ -57,6 +58,14 @@ class SchedulerFactory:
                 factor=scheduler_config.get('FACTOR', 0.1),
                 patience=scheduler_config.get('PATIENCE', 10),
                 verbose=scheduler_config.get('VERBOSE', True)
+            )
+            
+        elif scheduler_name == 'cosineannealingwarmrestarts':
+            return CosineAnnealingWarmRestarts(
+                optimizer,
+                T_0=scheduler_config['T_0'],
+                T_mult=scheduler_config.get('T_MULT', 1),
+                eta_min=scheduler_config.get('ETA_MIN', 0)
             )
             
         else:

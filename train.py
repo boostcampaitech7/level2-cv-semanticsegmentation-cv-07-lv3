@@ -59,11 +59,64 @@ def set_seed(seed):
 
 def get_transforms(cfg):
     """Get data transforms for train and validation"""
-    image_size = cfg['DATASET'].get('IMAGE_SIZE', 512)  # Default to 512 if not specified
+    image_size = cfg['DATASET'].get('IMAGE_SIZE', 512)
+    aug_cfg = cfg.get('AUGMENTATION', {})
     
     train_transform = A.Compose([
         A.Resize(image_size, image_size),
-        # Add more augmentations here if needed
+        
+        # Basic augmentations
+        A.HorizontalFlip(
+            p=aug_cfg.get('HORIZONTAL_FLIP', {}).get('P', 0.5)
+        ) if aug_cfg.get('HORIZONTAL_FLIP', {}).get('ENABLED', True) else A.NoOp(),
+        
+        A.VerticalFlip(
+            p=aug_cfg.get('VERTICAL_FLIP', {}).get('P', 0.5)
+        ) if aug_cfg.get('VERTICAL_FLIP', {}).get('ENABLED', True) else A.NoOp(),
+        
+        # Intensity augmentations
+        A.RandomBrightnessContrast(
+            brightness_limit=aug_cfg.get('RANDOM_BRIGHTNESS_CONTRAST', {}).get('BRIGHTNESS_LIMIT', 0.2),
+            contrast_limit=aug_cfg.get('RANDOM_BRIGHTNESS_CONTRAST', {}).get('CONTRAST_LIMIT', 0.2),
+            p=aug_cfg.get('RANDOM_BRIGHTNESS_CONTRAST', {}).get('P', 0.5)
+        ) if aug_cfg.get('RANDOM_BRIGHTNESS_CONTRAST', {}).get('ENABLED', True) else A.NoOp(),
+        
+        # Geometric augmentations
+        A.Rotate(
+            limit=aug_cfg.get('RANDOM_ROTATE', {}).get('LIMIT', 15),
+            p=aug_cfg.get('RANDOM_ROTATE', {}).get('P', 0.5)
+        ) if aug_cfg.get('RANDOM_ROTATE', {}).get('ENABLED', True) else A.NoOp(),
+        
+        # Noise and filtering
+        A.GaussNoise(
+            var_limit=aug_cfg.get('GAUSSIAN_NOISE', {}).get('VAR_LIMIT', [10.0, 50.0]),
+            p=aug_cfg.get('GAUSSIAN_NOISE', {}).get('P', 0.3)
+        ) if aug_cfg.get('GAUSSIAN_NOISE', {}).get('ENABLED', True) else A.NoOp(),
+        
+        # Contrast enhancement
+        A.CLAHE(
+            clip_limit=aug_cfg.get('CLAHE', {}).get('CLIP_LIMIT', 4.0),
+            p=aug_cfg.get('CLAHE', {}).get('P', 0.5)
+        ) if aug_cfg.get('CLAHE', {}).get('ENABLED', True) else A.NoOp(),
+        
+        A.RandomGamma(
+            gamma_limit=aug_cfg.get('RANDOM_GAMMA', {}).get('GAMMA_LIMIT', [80, 120]),
+            p=aug_cfg.get('RANDOM_GAMMA', {}).get('P', 0.3)
+        ) if aug_cfg.get('RANDOM_GAMMA', {}).get('ENABLED', True) else A.NoOp(),
+        
+        # Elastic and grid distortions
+        A.ElasticTransform(
+            alpha=aug_cfg.get('ELASTIC_TRANSFORM', {}).get('ALPHA', 120),
+            sigma=aug_cfg.get('ELASTIC_TRANSFORM', {}).get('SIGMA', 120 * 0.05),
+            alpha_affine=aug_cfg.get('ELASTIC_TRANSFORM', {}).get('ALPHA_AFFINE', 120 * 0.03),
+            p=aug_cfg.get('ELASTIC_TRANSFORM', {}).get('P', 0.3)
+        ) if aug_cfg.get('ELASTIC_TRANSFORM', {}).get('ENABLED', True) else A.NoOp(),
+        
+        A.GridDistortion(
+            num_steps=aug_cfg.get('GRID_DISTORTION', {}).get('NUM_STEPS', 5),
+            distort_limit=aug_cfg.get('GRID_DISTORTION', {}).get('DISTORT_LIMIT', 0.3),
+            p=aug_cfg.get('GRID_DISTORTION', {}).get('P', 0.3)
+        ) if aug_cfg.get('GRID_DISTORTION', {}).get('ENABLED', True) else A.NoOp(),
     ])
     
     val_transform = A.Compose([
@@ -73,12 +126,13 @@ def get_transforms(cfg):
     return train_transform, val_transform
 
 
-def main():
+def main(args=None):
     """Main training function"""
     # Parse arguments and load config
-    args = parse_args()
+    if args is None:
+        args = parse_args()
     cfg = load_config(args.config)
-
+    
     wandb.init(
         project = "Segmentation", 
         entity = 'jhs7027-naver', 
@@ -94,8 +148,30 @@ def main():
             "LEARNING_RATE": cfg['TRAIN'].get('LEARNING_RATE'),
             "WEIGHT_DECAY": cfg['TRAIN'].get('WEIGHT_DECAY'),
             "RANDOM_SEED": cfg['TRAIN'].get('RANDOM_SEED'),
+            "LOSS_NAME": cfg['LOSS'].get('NAME'),
+            "LOSS_WEIGHTS": cfg['LOSS'].get('WEIGHTS'),
+            "OPTIMIZER_NAME": cfg['OPTIMIZER'].get('NAME'),
+            "OPTIMIZER_LR": cfg['OPTIMIZER'].get('LR'),
+            "OPTIMIZER_WEIGHT_DECAY": cfg['OPTIMIZER'].get('WEIGHT_DECAY'),
+            "OPTIMIZER_BETAS": cfg['OPTIMIZER'].get('BETAS'),
+            "OPTIMIZER_USE_TRITON": cfg['OPTIMIZER'].get('USE_TRITON'),
+            "OPTIMIZER_MOMENTUM": cfg['OPTIMIZER'].get('MOMENTUM'),
+            "OPTIMIZER_USE_LOOKAHEAD": cfg['OPTIMIZER'].get('USE_LOOKAHEAD'),
+            "OPTIMIZER_LOOKAHEAD_K": cfg['OPTIMIZER'].get('LOOKAHEAD_K'),
+            "OPTIMIZER_LOOKAHEAD_ALPHA": cfg['OPTIMIZER'].get('LOOKAHEAD_ALPHA'),
+            "SCHEDULER_NAME": cfg['SCHEDULER'].get('NAME'),
+            "SCHEDULER_STEP_SIZE": cfg['SCHEDULER'].get('STEP_SIZE'),
+            "SCHEDULER_MILESTONES": cfg['SCHEDULER'].get('MILESTONES'),
+            "SCHEDULER_GAMMA": cfg['SCHEDULER'].get('GAMMA'),
+            "SCHEDULER_FACTOR": cfg['SCHEDULER'].get('FACTOR'),
+            "SCHEDULER_PATIENCE": cfg['SCHEDULER'].get('PATIENCE'),
+            "SCHEDULER_VERBOSE": cfg['SCHEDULER'].get('VERBOSE'),
+            "SCHEDULER_T_MAX": cfg['SCHEDULER'].get('T_MAX'),
+            "SCHEDULER_ETA_MIN": cfg['SCHEDULER'].get('ETA_MIN'),
+            "VALIDATION_THRESHOLD": cfg['VALIDATION'].get('THRESHOLD'),
         }
     )
+    
     
     # Set random seed
     set_seed(cfg['TRAIN']['RANDOM_SEED'])
