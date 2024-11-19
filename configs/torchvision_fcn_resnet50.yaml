@@ -88,6 +88,7 @@ OPTIMIZER:
   LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
+  USE_SCHEDULER: True
   NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
