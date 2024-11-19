@@ -25,9 +25,15 @@ def parse_args():
                         help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
-    parser.add_argument('-s', '--save', type=str, default='best_model.pt',
+    parser.add_argument('-s', '--save', type=str, default=None,
                         help='name of the model file to save (e.g., experiment1.pt)')
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    # If save name is not specified, use the config name
+    if args.save is None:
+        args.save = os.path.splitext(args.config)[0] + '.pt'
+    
+    return args
 
 
 def load_config(config_name):
