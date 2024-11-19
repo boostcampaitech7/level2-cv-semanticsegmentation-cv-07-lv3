@@ -18,8 +18,8 @@ MODEL:
   ENCODER_WEIGHTS: "imagenet"
 
 TRAIN:
-  NUM_EPOCHS: 5
-  VAL_EVERY: 5
+  NUM_EPOCHS: 1
+  VAL_EVERY: 1
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
   RANDOM_SEED: 21
@@ -89,6 +89,7 @@ OPTIMIZER:
   LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
+  USE_SCHEDULER: True
   NAME: "steplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
