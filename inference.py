@@ -19,13 +19,21 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Inference segmentation model')
     parser.add_argument('-c', '--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='path to config file')
-    parser.add_argument('-m', '--model_path', type=str, default='best_model.pt',
+    parser.add_argument('-m', '--model_path', type=str, default=None,
                         help='path to model checkpoint')
-    parser.add_argument('-o', '--output_path', type=str, default='output.csv',
+    parser.add_argument('-o', '--output_path', type=str, default=None,
                         help='path to save prediction results')
     parser.add_argument('--threshold', type=float, default=0.5,
                         help='threshold for binary prediction')
     args = parser.parse_args()
+    
+    # If model_path is not specified, use the config name
+    if args.model_path is None:
+        args.model_path = os.path.splitext(args.config)[0] + '.pt'
+    
+    # If output_path is not specified, use the config name
+    if args.output_path is None:
+        args.output_path = os.path.splitext(args.config)[0] + '.csv'
     
     # Add checkpoints directory to model path if not already specified
     if not os.path.dirname(args.model_path):
@@ -33,7 +41,7 @@ def parse_args():
     
     # Add results directory to output path if not already specified
     results_dir = 'results'
-    os.makedirs(results_dir, exist_ok=True)  # Create results directory if it doesn't exist
+    os.makedirs(results_dir, exist_ok=True)
     if not os.path.dirname(args.output_path):
         args.output_path = os.path.join(results_dir, args.output_path)
     
