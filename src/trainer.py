@@ -73,13 +73,24 @@ class Trainer:
         best_dice = 0.
         
         for epoch in range(self.cfg['TRAIN']['NUM_EPOCHS']):
+            # Get current learning rate
+            current_lr = self.optimizer.param_groups[0]['lr']
+            
             # Training phase
             train_loss = self._train_epoch(epoch)
-
-            # wandb α
+            
+            # Step scheduler for epoch-based schedulers
+            if self.scheduler is not None and not isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step()
+                new_lr = self.optimizer.param_groups[0]['lr']
+                if new_lr != current_lr:
+                    print(f'Epoch {epoch+1}: Learning rate changed from {current_lr:.2e} to {new_lr:.2e}')
+            
+            # wandb logging
             train_log_dict = {
                 "train_epoch": epoch + 1,
-                "train_loss": round(train_loss, 4)
+                "train_loss": round(train_loss, 4),
+                "learning_rate": current_lr
             }
             wandb.log(train_log_dict)
             
@@ -87,13 +98,15 @@ class Trainer:
             if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
                 dice, class_dice_dict, val_loss, val_results = self._validate_epoch(epoch + 1)
                 
-                # Scheduler step - validation 후에 호출
-                if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                    self.scheduler.step(val_loss)  # validation loss 사용
-                else:
-                    self.scheduler.step()          # 일반적인 step
+                # Step scheduler for ReduceLROnPlateau
+                if self.scheduler is not None and isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    prev_lr = self.optimizer.param_groups[0]['lr']
+                    self.scheduler.step(val_loss)
+                    new_lr = self.optimizer.param_groups[0]['lr']
+                    if new_lr != prev_lr:
+                        print(f'Epoch {epoch+1}: Learning rate changed from {prev_lr:.2e} to {new_lr:.2e} (ReduceLROnPlateau)')
                 
-                # wandb validation α
+                # wandb validation logging
                 val_log_dict = {
                     "val_epoch": epoch + 1,
                     "val_dice": dice,
@@ -151,11 +164,6 @@ class Trainer:
                 )
         
         epoch_loss = total_loss / len(self.train_loader)
-        
-        # ReduceLROnPlateau가 아닌 스케줄러의 경우 여기서 step
-        if not isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            self.scheduler.step()
-        
         return epoch_loss
     
     def _validate_epoch(self, epoch: int) -> Tuple[float, Dict, float, Dict]:
