@@ -224,7 +224,11 @@ def main(args=None):
     # Setup loss function, optimizer, and scheduler using factories
     criterion = LossFactory.get_loss(cfg['LOSS'])
     optimizer = OptimizerFactory.get_optimizer(cfg['OPTIMIZER'], model.parameters())
-    scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
+    
+    # Create scheduler only if enabled in config
+    scheduler = None
+    if cfg['SCHEDULER'].get('USE_SCHEDULER', True):  # Default to True for backward compatibility
+        scheduler = SchedulerFactory.get_scheduler(cfg['SCHEDULER'], optimizer)
 
     # Setup trainer with model name and config name
     trainer = Trainer(
