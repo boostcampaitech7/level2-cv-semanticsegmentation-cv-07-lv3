@@ -1,17 +1,19 @@
 import os
-import datetime
+import time
 import wandb
 import torch
+import shutil
+import datetime
+import numpy as np
+import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
+
 from tqdm import tqdm
 from typing import Dict, Tuple
-import time
 from datetime import timedelta
-import pandas as pd
-import numpy as np
-from utils.utils_for_visualizer import encode_mask_to_rle
 from utils.resources import CLASSES
+from utils.utils_for_visualizer import encode_mask_to_rle
 
 class Trainer:
     """Trainer class for model training and validation
@@ -146,7 +148,6 @@ class Trainer:
         if best_model_path is not None:
             final_model_path = os.path.join(self.saved_dir, self.config_name, f"{self.config_name}.pt")
             print(f"\nSaving final best model (from epoch {best_epoch}) as {final_model_path}")
-            import shutil
             shutil.copy2(best_model_path, final_model_path)
             
             # Update validation log to indicate final best model
