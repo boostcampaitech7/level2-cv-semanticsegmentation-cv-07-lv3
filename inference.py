@@ -37,7 +37,8 @@ def parse_args():
     
     # Add checkpoints directory to model path if not already specified
     if not os.path.dirname(args.model_path):
-        args.model_path = os.path.join('checkpoints', args.model_path)
+        config_name = os.path.splitext(args.config)[0]
+        args.model_path = os.path.join('checkpoints', config_name, args.model_path)
     
     # Add results directory to output path if not already specified
     results_dir = 'results'
