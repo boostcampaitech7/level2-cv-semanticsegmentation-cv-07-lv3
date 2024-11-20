@@ -248,7 +248,7 @@ def main(args=None):
         val_loader=valid_loader,
         criterion=criterion,
         optimizer=optimizer,
-        #scheduler=scheduler,
+        scheduler=scheduler,
         model_name=args.save,  
         config_name=os.path.splitext(args.config)[0]  # Add config_name parameter
     )
