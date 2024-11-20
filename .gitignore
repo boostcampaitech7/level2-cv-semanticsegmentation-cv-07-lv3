@@ -13,7 +13,7 @@ code/
 wandb/
 results/
 val_log/
-
+AutoSAM/output_experiment
 
 ### Linux ###
 
