@@ -108,17 +108,21 @@ def main():
     metadata_csv = "../../data/meta_data.csv"
 
     if is_inference:
-        inference_csv = 'efficient_unet_best_model.csv'
+        inference_csv = 'output.csv'
 
         image_path = "../../data/test/DCM"
-        csv_path = f"../../code/{inference_csv}"
+        csv_path = f"../results/{inference_csv}"
         output_dir = f"../../img/test_visualized/{inference_csv.split('_best_model')[0]}"
     else:
-        validation_csv = 'val_epoch_ 1.csv'
+        # gt 라인 없이 원본 이미지에 validation만 시각화하는 기능
+        # 최종적으로 불필요하다고 판단되면 삭제한다
+        
+        # validation_csv = 'val_epoch_ 1.csv'
 
-        image_path = "../../data/train/DCM"
-        csv_path = f"../../validation_result/{validation_csv}"
-        output_dir = f"../../img/val_visualized/{validation_csv}"
+        # image_path = "../../data/train/DCM"
+        # csv_path = f"../../validation_result/{validation_csv}"
+        # output_dir = f"../../img/val_visualized/{validation_csv}"
+        pass
 
     visualize_test(image_path, csv_path, output_dir, metadata_csv)
     

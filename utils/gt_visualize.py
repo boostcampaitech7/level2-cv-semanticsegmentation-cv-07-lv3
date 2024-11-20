@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from utils_for_visualizer import reformat_metadata
 
-def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_file, is_labeled=False):
+def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_file, is_labeled=False, id_list=None):
     """
     GT에 대해 폴리곤을 그리는 함수
     validation 시각화에 재사용하기 위해 원래 해상도와 포맷을 유지한다
@@ -14,6 +14,10 @@ def visualize_and_save(dcm_folder, json_folder, output_base_folder, metadata_fil
     metadata = pd.read_csv(metadata_file)
 
     for id_folder in os.listdir(dcm_folder):
+
+        if id_list and id_folder not in id_list:
+            continue
+
         image_dir = os.path.join(dcm_folder, id_folder)
         json_dir = os.path.join(json_folder, id_folder)
         output_dir = os.path.join(output_base_folder)
@@ -80,8 +84,17 @@ def main():
     metadata_file = "../../data/meta_data.csv"
 
     visualize_and_save_output_folder = "../../img/train_visualized"
-    #                                                                                           ▼ False일 때 레이블 출력 x
-    visualize_and_save(dcm_folder, json_folder, visualize_and_save_output_folder, metadata_file, True)
+
+
+    # 시각화할 ID 리스트 (예: ID000, ID001 등)
+    # 비어있을 경우 전체 ID에 대해 시각화를 수행
+    target_ids = [
+        #'ID058',
+        ]
+
+    visualize_and_save(dcm_folder, json_folder, visualize_and_save_output_folder, metadata_file, 
+                       # ▼ False일 때 레이블 출력 x
+                       True, id_list=target_ids)
 
 
 if __name__ == "__main__":

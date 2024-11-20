@@ -1,5 +1,5 @@
 WANDB:
-  GROUP: 'test'
+  GROUP: 'UNet++'
   NAME: 'smp_unetplusplus_efficientb0'
 
 DATASET:
@@ -72,7 +72,7 @@ AUGMENTATION:
     NUM_STEPS: 5
     DISTORT_LIMIT: 0.3
     P: 0.3
-
+  
   CROP_NON_EMPTY_MASK:
     ENABLED: False
     WIDTH: 512
@@ -81,7 +81,7 @@ AUGMENTATION:
     
 LOSS:
   NAME: "bce"  # ['bce', 'dice', 'combined']
-  WEIGHTS: [0.5, 0.5]  # weights for combined loss
+  WEIGHTS: [1.0, 1.0]  # weights for combined loss
 
 OPTIMIZER:
   NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
@@ -95,8 +95,7 @@ OPTIMIZER:
   LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
 
 SCHEDULER:
-  USE_SCHEDULER: True
-  NAME: "steplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
+  NAME: "multisteplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
   GAMMA: 0.95  # for exponentiallr
