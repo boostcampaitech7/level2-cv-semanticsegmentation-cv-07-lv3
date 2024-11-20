@@ -24,7 +24,6 @@ class Trainer:
         criterion: Loss function
         optimizer: Optimizer
         scheduler: Learning rate scheduler
-        model_name: Name of the model file to save
         config_name: Name of the configuration file
     """
     def __init__(
@@ -36,7 +35,6 @@ class Trainer:
         criterion: nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: object,
-        model_name: str = 'best_model.pt',
         config_name: str = 'default'
     ):
         self.cfg = cfg
@@ -57,8 +55,6 @@ class Trainer:
         
         self.threshold = cfg['VALIDATION']['THRESHOLD']  # Default threshold of 0.5
         
-        self.model_name = model_name
-        
         # Setup val_log directory
         self.val_log_dir = os.path.join('val_log')
         os.makedirs(self.val_log_dir, exist_ok=True)
@@ -71,6 +67,8 @@ class Trainer:
         print(f'Start training..')
         
         best_dice = 0.
+        best_epoch = -1
+        best_model_path = None
         
         for epoch in range(self.cfg['TRAIN']['NUM_EPOCHS']):
             # Get current learning rate
@@ -114,11 +112,23 @@ class Trainer:
                 }
                 wandb.log(val_log_dict)
                 
-                if best_dice < dice:
+                # Only save model if dice score is above 0.93 and better than previous best
+                if dice > 0.93 and best_dice < dice:
                     print(f"Best performance at epoch: {epoch + 1}, {best_dice:.4f} -> {dice:.4f}")
-                    print(f"Save model in {self.saved_dir} as {self.model_name}")
+                    
+                    # Create config-specific directory
+                    config_save_dir = os.path.join(self.saved_dir, self.config_name)
+                    os.makedirs(config_save_dir, exist_ok=True)
+                    
+                    # Save model with config name and epoch number
+                    model_filename = f"{self.config_name}_epoch{epoch+1}.pt"
+                    model_path = os.path.join(config_save_dir, model_filename)
+                    print(f"Save model in {config_save_dir} as {model_filename}")
+                    
                     best_dice = dice
-                    self.save_model(self.model_name)
+                    best_epoch = epoch + 1
+                    best_model_path = model_path
+                    self.save_model(model_path)
                     
                     # Save validation results to CSV only for best model
                     self._save_validation_results(val_results, epoch + 1)
@@ -131,6 +141,18 @@ class Trainer:
                         f.write("Per-class Dice Scores:\n")
                         for class_name, score in class_dice_dict.items():
                             f.write(f"{class_name}: {score:.4f}\n")
+        
+        # After training, copy the best model to final version if exists
+        if best_model_path is not None:
+            final_model_path = os.path.join(self.saved_dir, self.config_name, f"{self.config_name}.pt")
+            print(f"\nSaving final best model (from epoch {best_epoch}) as {final_model_path}")
+            import shutil
+            shutil.copy2(best_model_path, final_model_path)
+            
+            # Update validation log to indicate final best model
+            val_log_file = os.path.join(self.val_log_dir, f'{self.config_name}.txt')
+            with open(val_log_file, 'a') as f:
+                f.write(f"\nFinal best model saved as {self.config_name}.pt (from epoch {best_epoch})")
     
     def _train_epoch(self, epoch: int) -> float:
         """Training loop for one epoch
@@ -284,14 +306,13 @@ class Trainer:
             torch.sum(y_true_f, -1) + torch.sum(y_pred_f, -1) + eps
         )
     
-    def save_model(self, filename: str) -> None:
+    def save_model(self, filepath: str) -> None:
         """Save model checkpoint
         
         Args:
-            filename: Name of the checkpoint file
+            filepath: Full path to save the checkpoint file
         """
-        output_path = os.path.join(self.saved_dir, filename)
-        torch.save(self.model, output_path)
+        torch.save(self.model, filepath)
     
     def _save_validation_results(self, val_results: Dict, epoch: int) -> None:
         """Save validation results to CSV
