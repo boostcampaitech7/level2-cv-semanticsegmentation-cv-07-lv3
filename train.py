@@ -25,14 +25,7 @@ def parse_args():
                         help='name of config file in configs directory')
     parser.add_argument('--resume', type=str, default=None,
                         help='path to checkpoint to resume from')
-    parser.add_argument('-s', '--save', type=str, default=None,
-                        help='name of the model file to save (e.g., experiment1.pt)')
     args = parser.parse_args()
-    
-    # If save name is not specified, use the config name
-    if args.save is None:
-        args.save = os.path.splitext(args.config)[0] + '.pt'
-    
     return args
 
 
@@ -178,7 +171,6 @@ def main(args=None):
         }
     )
     
-    
     # Set random seed
     set_seed(cfg['TRAIN']['RANDOM_SEED'])
     
@@ -244,8 +236,7 @@ def main(args=None):
         val_loader=valid_loader,
         criterion=criterion,
         optimizer=optimizer,
-        scheduler=scheduler,
-        model_name=args.save,  
+        scheduler=scheduler, 
         config_name=os.path.splitext(args.config)[0]  # Add config_name parameter
     )
     
