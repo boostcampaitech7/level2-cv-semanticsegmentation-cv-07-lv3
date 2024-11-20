@@ -30,7 +30,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torchvision.models as models
 
 
-from loss_functions.dice_loss import SoftDiceLoss
+from loss_functions.dice_loss import SoftDiceLoss, DiceLoss
 from loss_functions.metrics import dice_pytorch, SegmentationMetric
 
 from models import sam_seg_model_registry
@@ -208,7 +208,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     filename = os.path.join(args.save_dir, 'autosam_b%d.pth' % (args.batch_size))
 
-    dice_loss = SoftDiceLoss(batch_dice=True, do_bg=False)
+    # dice_loss = SoftDiceLoss(batch_dice=True, do_bg=False)
+    dice_loss = DiceLoss()
     bce_loss = nn.BCEWithLogitsLoss()
 
     best_loss = 100
@@ -217,13 +218,15 @@ def main_worker(gpu, ngpus_per_node, args):
         writer.add_scalar("lr", optimizer.param_groups[0]["lr"], global_step=epoch)
 
         # train for one epoch
-        # train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_loss, bce_loss)
+        train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_loss, bce_loss)
         loss = validate(val_loader, model, epoch, args, writer, dice_loss)
         print("----", loss)
 
         if loss < best_loss:
             best_loss = loss
             save_checkpoint(model, filename=filename)
+            print("saved ckpt at ", epoch)
+            print("best dice:", best_loss)
 
 
     #test(model, args)

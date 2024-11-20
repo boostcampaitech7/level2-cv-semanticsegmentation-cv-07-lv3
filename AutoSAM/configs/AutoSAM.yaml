@@ -1,21 +1,15 @@
 WANDB:
   GROUP: 'test'
-  NAME: 'smp_unetplusplus_efficientb0'
+  NAME: 'AutoSAM'
 
 DATASET:
   IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
   TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"
   IMAGE_SIZE: 1024  # or whatever size you want
-  BATCH_SIZE: 2
+  BATCH_SIZE: 
   NUM_WORKERS: 2
   FOLD: 0
-
-MODEL:
-  TYPE: "smp"
-  ARCHITECTURE: "UnetPlusPlus"
-  ENCODER: "efficientnet-b0"
-  ENCODER_WEIGHTS: "imagenet"
 
 TRAIN:
   NUM_EPOCHS: 1
