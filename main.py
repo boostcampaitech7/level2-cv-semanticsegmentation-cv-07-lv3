@@ -47,8 +47,7 @@ def main():
     print("Starting training...")
     train_args = argparse.Namespace(
         config=args.config,
-        resume=args.resume,
-        save=args.save
+        resume=args.resume
     )
     train_main(train_args)
     
