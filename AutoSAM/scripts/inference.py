@@ -119,13 +119,7 @@ class Inferencer:
                 
                 # Convert to RLE format
                 for output, image_name in zip(outputs, image_names):
-                    print(output.shape)
                     for c, segm in enumerate(output):
-                        print(c, segm)
-                        print(segm.shape)
-                        print(sum(segm))
-                        print(sum(sum(segm)))
-                        exit()
                         rle = encode_mask_to_rle(segm)
                         rles.append(rle)
                         filename_and_class.append(f"{self.cfg['CLASSES'][c]}_{image_name}")

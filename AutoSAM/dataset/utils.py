@@ -7,7 +7,7 @@ import albumentations as A
 
 def get_transforms(cfg):
     """Get data transforms for train and validation"""
-    image_size = cfg['DATASET'].get('IMAGE_SIZE', 512)
+    image_size = cfg['DATASET'].get('IMAGE_SIZE', 1024)
     aug_cfg = cfg.get('AUGMENTATION', {})
     
     train_transform = A.Compose([
@@ -65,6 +65,10 @@ def get_transforms(cfg):
             distort_limit=aug_cfg.get('GRID_DISTORTION', {}).get('DISTORT_LIMIT', 0.3),
             p=aug_cfg.get('GRID_DISTORTION', {}).get('P', 0.3)
         ) if aug_cfg.get('GRID_DISTORTION', {}).get('ENABLED', True) else A.NoOp(),
+
+        A.augmentations.crops.transforms.CropNonEmptyMaskIfExists(
+            height=cfg.get('CROP_NON_EMPTY_MASK', {}).get('HEIGHT', image_size/2), width=cfg.get('CROP_NON_EMPTY_MASK', {}).get('WIDTH', image_size/2), ignore_values=cfg.get('CROP_NON_EMPTY_MASK', {}).get('IGNORE_VALUES', None)
+            ) if aug_cfg.get('CROP_NON_EMPTY_MASK', {}).get('ENABLED', True) else A.NoOp(),
     ])
     
     val_transform = A.Compose([
@@ -86,6 +90,7 @@ def generate_dataset(args, cfg):
     
     # Setup transforms
     train_transform, val_transform = get_transforms(cfg)
+    print(train_transform)
     
     # Setup datasets
     train_dataset = XRayDataset(

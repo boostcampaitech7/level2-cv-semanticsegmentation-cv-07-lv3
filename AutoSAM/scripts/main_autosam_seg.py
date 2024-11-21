@@ -31,8 +31,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torchvision.models as models
 
 
-from loss_functions.dice_loss import SoftDiceLoss, DiceLoss
-from loss_functions.metrics import dice_pytorch, SegmentationMetric
+from loss_functions.dice_loss import DiceLoss
 
 from models import sam_seg_model_registry
 from dataset import generate_dataset, generate_test_loader
@@ -85,7 +84,7 @@ parser.add_argument('--src_dir', type=str, default=None, help='path to splits fi
 parser.add_argument('--data_dir', type=str, default=None, help='path to datafolder')
 parser.add_argument("--slice_threshold", type=float, default=0.05)
 parser.add_argument("--num_classes", type=int, default=29)
-parser.add_argument("--save_dir", type=str, default='asdfasdf')
+parser.add_argument("--save_dir", type=str, default='autosam_crop')
 parser.add_argument("--load_saved_model", action='store_true',
                         help='whether freeze encoder of the segmenter')
 parser.add_argument("--saved_model_path", type=str, default='saved')
@@ -213,7 +212,13 @@ def main_worker(gpu, ngpus_per_node, args):
         # param.requires_grad = True
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    scheduler = ReduceLROnPlateau(optimizer, 'min')
+    scheduler = ReduceLROnPlateau(
+                optimizer,
+                mode=cfg['SCHEDULER'].get('MODE', 'min'),
+                factor=cfg['SCHEDULER'].get('FACTOR', 0.1),
+                patience=cfg['SCHEDULER'].get('PATIENCE', 10),
+                verbose=cfg['SCHEDULER'].get('VERBOSE', True)
+    )
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -247,7 +252,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     filename = os.path.join(args.save_dir, 'autosam_b')
 
-    # dice_loss = SoftDiceLoss(batch_dice=True, do_bg=False)
     dice_loss = DiceLoss()
     bce_loss = nn.BCEWithLogitsLoss()
 
@@ -276,9 +280,9 @@ def main_worker(gpu, ngpus_per_node, args):
         }
         wandb.log(val_log_dict)
 
-        if val_dice < best_dice:
-            best_dice = val_dice
-            save_checkpoint(model, filename=filename, dice=val_dice)
+        if 1 - val_dice > best_dice:
+            best_dice = 1 - val_dice
+            save_checkpoint(model, filename=filename, dice=np.round(1-val_dice, 4), epoch=epoch)
             print("saved ckpt at ", epoch)
             print("best dice:", best_dice)
 
@@ -317,9 +321,6 @@ def train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_l
         pred_softmax = torch.sigmoid(mask)
         loss = bce_loss(mask, label) + dice_loss(pred_softmax, label)
 
-        # acc1/acc5 are (K+1)-way contrast classifier accuracy
-        # measure accuracy and record loss
-
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
@@ -334,8 +335,7 @@ def train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_l
             print('Train: [{0}][{1}/{2}]\t'
                   'loss {loss:.4f}'.format(epoch, i, len(train_loader), loss=loss.item()))
 
-    if epoch >= 10:
-        scheduler.step(loss)
+    scheduler.step(loss)
     
     return loss.item()
 
@@ -377,90 +377,6 @@ def validate(val_loader, model, epoch, args, writer, dice_loss):
     print('Validating: Epoch: %2d Loss: %.4f IoU_pred: %.4f' % (epoch, np.mean(loss_list), iou_pred.item()))
     writer.add_scalar("val_loss", np.mean(loss_list), epoch)
     return np.mean(loss_list)
-
-
-def test(model, args):
-    print('Test')
-    join = os.path.join
-    if not os.path.exists(join(args.save_dir, "infer")):
-        os.mkdir(join(args.save_dir, "infer"))
-    if not os.path.exists(join(args.save_dir, "label")):
-        os.mkdir(join(args.save_dir, "label"))
-
-    split_dir = os.path.join(args.src_dir, "splits.pkl")
-    with open(split_dir, "rb") as f:
-        splits = pickle.load(f)
-    test_keys = splits[args.fold]['test']
-
-    model.eval()
-
-    for key in test_keys:
-        preds = []
-        labels = []
-        data_loader = generate_test_loader(key, args)
-        with torch.no_grad():
-            for i, tup in enumerate(data_loader):
-                if args.gpu is not None:
-                    img = tup[0].float().cuda(args.gpu, non_blocking=True)
-                    label = tup[1].long().cuda(args.gpu, non_blocking=True)
-                else:
-                    img = tup[0]
-                    label = tup[1]
-
-                b, c, h, w = img.shape
-
-                mask, iou_pred = model(img)
-                mask = mask.view(b, -1, h, w)
-                mask_softmax = F.softmax(mask, dim=1)
-                mask = torch.argmax(mask_softmax, dim=1)
-
-                preds.append(mask.cpu().numpy())
-                labels.append(label.cpu().numpy())
-
-            preds = np.concatenate(preds, axis=0)
-            labels = np.concatenate(labels, axis=0).squeeze()
-            print(preds.shape, labels.shape)
-            if "." in key:
-                key = key.split(".")[0]
-            ni_pred = nib.Nifti1Image(preds.astype(np.int8), affine=np.eye(4))
-            ni_lb = nib.Nifti1Image(labels.astype(np.int8), affine=np.eye(4))
-            nib.save(ni_pred, join(args.save_dir, 'infer', key + '.nii'))
-            nib.save(ni_lb, join(args.save_dir, 'label', key + '.nii'))
-        print("finish saving file:", key)
-
-def test_2(data_loader, model, args):
-    print('Test')
-    metric_val = SegmentationMetric(args.num_classes)
-    metric_val.reset()
-    model.eval()
-
-    with torch.no_grad():
-        for i, tup in enumerate(data_loader):
-            # measure data loading time
-
-            if args.gpu is not None:
-                img = tup[0].float().cuda(args.gpu, non_blocking=True)
-                label = tup[1].long().cuda(args.gpu, non_blocking=True)
-            else:
-                img = tup[0]
-                label = tup[1]
-
-            b, c, h, w = img.shape
-
-            # compute output
-            mask, iou_pred = model(img)
-            mask = mask.view(b, -1, h, w)
-
-            pred_softmax = F.softmax(mask, dim=1)
-            metric_val.update(label.squeeze(dim=1), pred_softmax)
-            pixAcc, mIoU, Dice = metric_val.get()
-
-            if i % args.print_freq == 0:
-                print("Index:%f, mean Dice:%.4f" % (i, Dice))
-
-    _, _, Dice = metric_val.get()
-    print("Overall mean dice score is:", Dice)
-    print("Finished test")
 
 
 def save_checkpoint(model, filename, dice, epoch):
