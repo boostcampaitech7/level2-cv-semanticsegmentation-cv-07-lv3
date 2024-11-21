@@ -29,7 +29,7 @@ class DiceLoss(nn.Module):
         super(DiceLoss, self).__init__()
         self.eps = eps
         
-    def forward(self, logits, probs):
+    def forward(self, probs, targets):
         # probs = torch.sigmoid(logits)
         
         # Flatten

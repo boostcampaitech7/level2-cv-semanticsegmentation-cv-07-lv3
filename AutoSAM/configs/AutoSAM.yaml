@@ -7,12 +7,18 @@ DATASET:
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
   TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"
   IMAGE_SIZE: 1024  # or whatever size you want
-  BATCH_SIZE: 
-  NUM_WORKERS: 2
+  BATCH_SIZE: 4
+  NUM_WORKERS: 4
   FOLD: 0
 
+MODEL:
+  TYPE: "AutoSAM"
+  ARCHITECTURE: "AutoSAM"
+  ENCODER: "SAM-vit-l"
+  ENCODER_WEIGHTS: ""
+
 TRAIN:
-  NUM_EPOCHS: 1
+  NUM_EPOCHS: 120
   VAL_EVERY: 1
   LEARNING_RATE: 1e-4
   WEIGHT_DECAY: 1e-6
