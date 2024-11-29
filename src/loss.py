@@ -53,12 +53,18 @@ class CombinedLoss(nn.Module):
         super(CombinedLoss, self).__init__()
         self.losses = losses
         self.weights = weights or [1.0] * len(losses)
-        
+
     def forward(self, inputs, targets, dist_maps=None):
         total_loss = 0
 
         for loss, weight in zip(self.losses, self.weights):
-            total_loss += weight * loss(inputs, targets)
+            if (isinstance(loss, BoundaryLoss)):
+                if dist_maps is None:
+                    raise ValueError("BoundaryLoss requires 'dist_maps' as an input.")
+                total_loss += weight * loss(inputs, dist_maps)
+            else:
+                total_loss += weight * loss(inputs, targets)
+
         return total_loss
 
 
@@ -80,7 +86,6 @@ class JaccardLoss(nn.Module):
         jaccard = (intersection + self.smooth) / (union + self.smooth)
         return 1.0 - jaccard
 
-
 class JaccardDiceCombinedLoss(nn.Module):
     def __init__(self, weights=None):
         super(JaccardDiceCombinedLoss, self).__init__()
@@ -94,14 +99,7 @@ class JaccardDiceCombinedLoss(nn.Module):
         
         total_loss = self.weights[0] * jaccard_loss_value + self.weights[1] * dice_loss_value
         return total_loss
-            if (isinstance(loss, BoundaryLoss)):
-                if dist_maps is None:
-                    raise ValueError("BoundaryLoss requires 'dist_maps' as an input.")
-                total_loss += weight * loss(inputs, dist_maps)
-            else:
-                total_loss += weight * loss(inputs, targets)
 
-        return total_loss
 
 class BoundaryLoss(nn.Module):
     def __init__(self):
