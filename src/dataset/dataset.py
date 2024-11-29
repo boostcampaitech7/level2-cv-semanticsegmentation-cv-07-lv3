@@ -1,8 +1,8 @@
 import os
 import cv2
 import json
-import numpy as np
 import torch
+import numpy as np
 
 from torch.utils.data import Dataset
 from sklearn.model_selection import GroupKFold
