@@ -162,16 +162,21 @@ class Trainer:
             epoch: Current epoch number
         """
         total_loss = 0
+
         with tqdm(total=len(self.train_loader), desc=f'[Training Epoch {epoch+1}]', disable=False) as pbar:
-            for step, (images, masks) in enumerate(self.train_loader):            
-                images = images.to(self.device)
-                masks = masks.to(self.device)
+            for step, data in enumerate(self.train_loader):        
+                images = data[0].to(self.device)
+                masks = data[1].to(self.device)
                 
                 # Forward pass
-                outputs = self.model(images)
+                outputs = self.model(images)['out']
                 
                 # Calculate loss
-                loss = self.criterion(outputs['out'], masks)
+                if self.cfg['LOSS']['NAME'] == 'boundary':
+                    dist_maps = data[2].to(self.device)
+                    loss = self.criterion(outputs, masks, dist_maps)
+                else:
+                    loss = self.criterion(outputs, masks)
                 total_loss += loss.item()
                 
                 # Backward pass
@@ -213,9 +218,9 @@ class Trainer:
         
         with torch.no_grad():
             with tqdm(total=len(self.val_loader), desc=f'[Validation Epoch {epoch}]', disable=False) as pbar:
-                for step, (images, masks) in enumerate(self.val_loader):
-                    images = images.to(self.device)
-                    masks = masks.to(self.device)
+                for step, data in enumerate(self.val_loader):
+                    images = data[0].to(self.device)
+                    masks = data[1].to(self.device)
                     
                     # Forward pass
                     outputs = self.model(images)['out']
@@ -228,7 +233,11 @@ class Trainer:
                         outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
                     
                     # Calculate loss
-                    loss = self.criterion(outputs, masks)
+                    if self.cfg['LOSS']['NAME'] == 'boundary':
+                        dist_maps = data[2].to(self.device)
+                        loss = self.criterion(outputs['out'], masks, dist_maps)
+                    else:
+                        loss = self.criterion(outputs['out'], masks)
                     total_loss += loss.item()
                     
                     # Calculate Dice coefficient on GPU

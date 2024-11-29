@@ -1,10 +1,31 @@
 import os
 import cv2
 import json
-import numpy as np
 import torch
+import numpy as np
+
 from torch.utils.data import Dataset
+from sklearn.model_selection import GroupKFold
 from typing import Dict, List, Optional, Tuple
+from scipy.ndimage import distance_transform_edt
+
+
+def dist_map_transform(resolution):
+    def transform(one_hot_label):
+        if isinstance(one_hot_label, torch.Tensor):
+            one_hot_label = one_hot_label.cpu().numpy()
+        
+        # Compute distance map
+        posmask = one_hot_label.astype(bool)
+        dist = np.zeros_like(one_hot_label, dtype=np.float32)
+        if posmask.any():
+            negmask = ~posmask
+            dist = distance_transform_edt(negmask, sampling=resolution) * negmask \
+                   - (distance_transform_edt(posmask, sampling=resolution) - 1) * posmask
+
+        return torch.from_numpy(dist)
+
+    return transform
 
 class XRayDataset(Dataset):
     """X-Ray image segmentation dataset class
@@ -38,6 +59,9 @@ class XRayDataset(Dataset):
         
         # Initialize dataset
         self.filenames, self.labelnames = self._init_dataset()
+
+        # Initialize dist_transform function
+        self.dist_transform = dist_map_transform([1, 1])
 
     def _init_dataset(self) -> Tuple[List[str], List[str]]:
         """Initialize dataset by finding all image and label files
@@ -83,7 +107,6 @@ class XRayDataset(Dataset):
         ys = [0 for _ in _filenames]
         
         # Use GroupKFold to split data
-        from sklearn.model_selection import GroupKFold
         gkf = GroupKFold(n_splits=5)
         
         filenames = []
@@ -152,7 +175,26 @@ class XRayDataset(Dataset):
             result = self.transforms(**inputs)
             
             image = result["image"]
-            label = result["mask"] if self.is_train else label
+            label = result["mask"] if self.is_train else label  
+            
+            # Augmentation을 적용한 이미지 저장
+            save_dir = "../img/augmented_images"
+            os.makedirs(save_dir, exist_ok=True)
+            aug_image_path = os.path.join(save_dir, f"aug_{item}_image.png")
+            aug_label_path = os.path.join(save_dir, f"aug_{item}_label.png")
+            
+            cv2.imwrite(aug_image_path, (image * 255).astype(np.uint8))
+            
+            # train 모드에서 Augmentation이 적용된 마스크를 저장
+            # 주석은 class 관련 확인을 위한 코드 -> 추후 삭제 예정
+            if self.is_train:
+                #num_classes = 29
+                #all_classes = set(range(num_classes))
+                #present_classes = set(np.unique(label.argmax(axis=-1)))
+                #missing_classes = all_classes - present_classes
+                #print(f"{image_name}: {sorted(missing_classes)}")
+                #print(f"{image_name}: {np.unique(label.argmax(axis=-1))}")
+                cv2.imwrite(aug_label_path, (label.argmax(axis=-1) * 255).astype(np.uint8))
 
         # Convert to channel-first format
         image = image.transpose(2, 0, 1)
@@ -161,7 +203,11 @@ class XRayDataset(Dataset):
         # Convert to tensor
         image = torch.from_numpy(image).float()
         label = torch.from_numpy(label).float()
-            
+        
+        if (self.cfg['LOSS']['NAME'] == 'boundary'):
+            dist_map = torch.stack([self.dist_transform(class_channel) for class_channel in label])  # Distance map for labels
+            return image, label, dist_map
+
         return image, label
 
 class XRayInferenceDataset(Dataset):

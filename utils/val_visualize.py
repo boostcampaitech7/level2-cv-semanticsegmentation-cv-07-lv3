@@ -113,8 +113,8 @@ def main():
     """
 
     # validation하고 싶은 csv 파일
-    validation_csv = 'val_epoch_99.csv'
-    csv_path = f"../../validation_result_baseline/{validation_csv}"
+    validation_csv = 'val_epoch_95.csv'
+    csv_path = f"../../validation_result/smp_unetplusplus_efficientb0/{validation_csv}"
 
     # data 폴더 경로
     img_root = '../../img'

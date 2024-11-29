@@ -5,6 +5,7 @@ import os
 import gc
 import yaml
 import random
+import wandb
 import shutil
 import time
 import warnings
@@ -30,8 +31,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torchvision.models as models
 
 
-from loss_functions.dice_loss import SoftDiceLoss, DiceLoss
-from loss_functions.metrics import dice_pytorch, SegmentationMetric
+from loss_functions.dice_loss import DiceLoss
 
 from models import sam_seg_model_registry
 from dataset import generate_dataset, generate_test_loader
@@ -42,7 +42,7 @@ parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
 parser.add_argument('-j', '--workers', default=32, type=int, metavar='N',
                     help='number of data loading workers (default: 32)')
-parser.add_argument('-c', '--config', default='smp_unetplusplus_efficientb0.yaml', type=str)
+parser.add_argument('-c', '--config', default='AutoSAM.yaml', type=str)
 parser.add_argument('--epochs', default=120, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
@@ -84,7 +84,7 @@ parser.add_argument('--src_dir', type=str, default=None, help='path to splits fi
 parser.add_argument('--data_dir', type=str, default=None, help='path to datafolder')
 parser.add_argument("--slice_threshold", type=float, default=0.05)
 parser.add_argument("--num_classes", type=int, default=29)
-parser.add_argument("--save_dir", type=str, default='asdfasdf')
+parser.add_argument("--save_dir", type=str, default='autosam_crop')
 parser.add_argument("--load_saved_model", action='store_true',
                         help='whether freeze encoder of the segmenter')
 parser.add_argument("--saved_model_path", type=str, default='saved')
@@ -136,6 +136,44 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, args):
     cfg = load_config(args.config)
+    wandb.init(
+        project = "Segmentation", 
+        entity = 'jhs7027-naver', 
+        group = cfg['WANDB']['GROUP'], 
+        name = cfg['WANDB']['NAME'], 
+        config = {
+            "IMAGE_SIZE": cfg['DATASET'].get('IMAGE_SIZE'),
+            "BATCH_SIZE": cfg['DATASET'].get('BATCH_SIZE'),
+            "NUM_WORKERS": cfg['DATASET'].get('NUM_WORKERS'),
+            "ENCODER": cfg['MODEL'].get('ENCODER'),
+            "NUM_EPOCHS": cfg['TRAIN'].get('NUM_EPOCHS'),
+            "VAL_EVERY": cfg['TRAIN'].get('VAL_EVERY'),
+            "LEARNING_RATE": cfg['TRAIN'].get('LEARNING_RATE'),
+            "WEIGHT_DECAY": cfg['TRAIN'].get('WEIGHT_DECAY'),
+            "RANDOM_SEED": cfg['TRAIN'].get('RANDOM_SEED'),
+            "LOSS_NAME": cfg['LOSS'].get('NAME'),
+            "LOSS_WEIGHTS": cfg['LOSS'].get('WEIGHTS'),
+            "OPTIMIZER_NAME": cfg['OPTIMIZER'].get('NAME'),
+            "OPTIMIZER_LR": cfg['OPTIMIZER'].get('LR'),
+            "OPTIMIZER_WEIGHT_DECAY": cfg['OPTIMIZER'].get('WEIGHT_DECAY'),
+            "OPTIMIZER_BETAS": cfg['OPTIMIZER'].get('BETAS'),
+            "OPTIMIZER_USE_TRITON": cfg['OPTIMIZER'].get('USE_TRITON'),
+            "OPTIMIZER_MOMENTUM": cfg['OPTIMIZER'].get('MOMENTUM'),
+            "OPTIMIZER_USE_LOOKAHEAD": cfg['OPTIMIZER'].get('USE_LOOKAHEAD'),
+            "OPTIMIZER_LOOKAHEAD_K": cfg['OPTIMIZER'].get('LOOKAHEAD_K'),
+            "OPTIMIZER_LOOKAHEAD_ALPHA": cfg['OPTIMIZER'].get('LOOKAHEAD_ALPHA'),
+            "SCHEDULER_NAME": cfg['SCHEDULER'].get('NAME'),
+            "SCHEDULER_STEP_SIZE": cfg['SCHEDULER'].get('STEP_SIZE'),
+            "SCHEDULER_MILESTONES": cfg['SCHEDULER'].get('MILESTONES'),
+            "SCHEDULER_GAMMA": cfg['SCHEDULER'].get('GAMMA'),
+            "SCHEDULER_FACTOR": cfg['SCHEDULER'].get('FACTOR'),
+            "SCHEDULER_PATIENCE": cfg['SCHEDULER'].get('PATIENCE'),
+            "SCHEDULER_VERBOSE": cfg['SCHEDULER'].get('VERBOSE'),
+            "SCHEDULER_T_MAX": cfg['SCHEDULER'].get('T_MAX'),
+            "SCHEDULER_ETA_MIN": cfg['SCHEDULER'].get('ETA_MIN'),
+            "VALIDATION_THRESHOLD": cfg['VALIDATION'].get('THRESHOLD'),
+        }
+    )
     args.gpu = gpu
 
     # remove unused memory
@@ -174,7 +212,13 @@ def main_worker(gpu, ngpus_per_node, args):
         # param.requires_grad = True
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    scheduler = ReduceLROnPlateau(optimizer, 'min')
+    scheduler = ReduceLROnPlateau(
+                optimizer,
+                mode=cfg['SCHEDULER'].get('MODE', 'min'),
+                factor=cfg['SCHEDULER'].get('FACTOR', 0.1),
+                patience=cfg['SCHEDULER'].get('PATIENCE', 10),
+                verbose=cfg['SCHEDULER'].get('VERBOSE', True)
+    )
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -206,27 +250,41 @@ def main_worker(gpu, ngpus_per_node, args):
     print(args.save_dir)
     writer = SummaryWriter(os.path.join(args.save_dir, 'tensorboard' + str(gpu)))
 
-    filename = os.path.join(args.save_dir, 'autosam_b%d.pth' % (args.batch_size))
+    filename = os.path.join(args.save_dir, 'autosam_b')
 
-    # dice_loss = SoftDiceLoss(batch_dice=True, do_bg=False)
     dice_loss = DiceLoss()
     bce_loss = nn.BCEWithLogitsLoss()
 
-    best_loss = 100
+    best_dice = -100
 
     for epoch in range(args.start_epoch, args.epochs):
         writer.add_scalar("lr", optimizer.param_groups[0]["lr"], global_step=epoch)
 
         # train for one epoch
-        train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_loss, bce_loss)
-        loss = validate(val_loader, model, epoch, args, writer, dice_loss)
-        print("----", loss)
+        train_loss = train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_loss, bce_loss)
+        val_dice = validate(val_loader, model, epoch, args, writer, dice_loss)
+        
+        # wandb logging
+        train_log_dict = {
+            "train_epoch": epoch + 1,
+            "train_loss": round(train_loss, 4),
+            "learning_rate": optimizer.param_groups[0]['lr']
+        }
+        wandb.log(train_log_dict)
 
-        if loss < best_loss:
-            best_loss = loss
-            save_checkpoint(model, filename=filename)
+        # wandb validation logging
+        val_log_dict = {
+            "val_epoch": epoch + 1,
+            "val_dice": 1 - val_dice,
+            "val_loss": val_dice
+        }
+        wandb.log(val_log_dict)
+
+        if 1 - val_dice > best_dice:
+            best_dice = 1 - val_dice
+            save_checkpoint(model, filename=filename, dice=np.round(1-val_dice, 4), epoch=epoch)
             print("saved ckpt at ", epoch)
-            print("best dice:", best_loss)
+            print("best dice:", best_dice)
 
 
     #test(model, args)
@@ -260,11 +318,8 @@ def train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_l
         
         iou_pred = iou_pred.squeeze().view(b, -1)
 
-        pred_softmax = F.softmax(mask, dim=1)
-        loss = bce_loss(mask, label.squeeze(1)) + dice_loss(pred_softmax, label.squeeze(1))
-
-        # acc1/acc5 are (K+1)-way contrast classifier accuracy
-        # measure accuracy and record loss
+        pred_softmax = torch.sigmoid(mask)
+        loss = bce_loss(mask, label) + dice_loss(pred_softmax, label)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -280,8 +335,9 @@ def train(train_loader, model, optimizer, scheduler, epoch, args, writer, dice_l
             print('Train: [{0}][{1}/{2}]\t'
                   'loss {loss:.4f}'.format(epoch, i, len(train_loader), loss=loss.item()))
 
-    if epoch >= 10:
-        scheduler.step(loss)
+    scheduler.step(loss)
+    
+    return loss.item()
 
 
 def validate(val_loader, model, epoch, args, writer, dice_loss):
@@ -306,7 +362,7 @@ def validate(val_loader, model, epoch, args, writer, dice_loss):
             iou_pred = iou_pred.squeeze().view(b, -1)
             iou_pred = torch.mean(iou_pred)
 
-            outputs = F.softmax(mask, dim=1)
+            outputs = torch.sigmoid(mask)
             
             # Handle different output sizes
             output_h, output_w = outputs.size(-2), outputs.size(-1)
@@ -315,7 +371,7 @@ def validate(val_loader, model, epoch, args, writer, dice_loss):
             if output_h != mask_h or output_w != mask_w:
                 outputs = F.interpolate(outputs, size=(mask_h, mask_w), mode="bilinear")
 
-            loss = dice_loss(outputs, label.squeeze(1))  # self.ce_loss(pred, target.squeeze())
+            loss = dice_loss(outputs, label)  # self.ce_loss(pred, target.squeeze())
             loss_list.append(loss.item())
 
     print('Validating: Epoch: %2d Loss: %.4f IoU_pred: %.4f' % (epoch, np.mean(loss_list), iou_pred.item()))
@@ -323,93 +379,10 @@ def validate(val_loader, model, epoch, args, writer, dice_loss):
     return np.mean(loss_list)
 
 
-def test(model, args):
-    print('Test')
-    join = os.path.join
-    if not os.path.exists(join(args.save_dir, "infer")):
-        os.mkdir(join(args.save_dir, "infer"))
-    if not os.path.exists(join(args.save_dir, "label")):
-        os.mkdir(join(args.save_dir, "label"))
-
-    split_dir = os.path.join(args.src_dir, "splits.pkl")
-    with open(split_dir, "rb") as f:
-        splits = pickle.load(f)
-    test_keys = splits[args.fold]['test']
-
-    model.eval()
-
-    for key in test_keys:
-        preds = []
-        labels = []
-        data_loader = generate_test_loader(key, args)
-        with torch.no_grad():
-            for i, tup in enumerate(data_loader):
-                if args.gpu is not None:
-                    img = tup[0].float().cuda(args.gpu, non_blocking=True)
-                    label = tup[1].long().cuda(args.gpu, non_blocking=True)
-                else:
-                    img = tup[0]
-                    label = tup[1]
-
-                b, c, h, w = img.shape
-
-                mask, iou_pred = model(img)
-                mask = mask.view(b, -1, h, w)
-                mask_softmax = F.softmax(mask, dim=1)
-                mask = torch.argmax(mask_softmax, dim=1)
-
-                preds.append(mask.cpu().numpy())
-                labels.append(label.cpu().numpy())
-
-            preds = np.concatenate(preds, axis=0)
-            labels = np.concatenate(labels, axis=0).squeeze()
-            print(preds.shape, labels.shape)
-            if "." in key:
-                key = key.split(".")[0]
-            ni_pred = nib.Nifti1Image(preds.astype(np.int8), affine=np.eye(4))
-            ni_lb = nib.Nifti1Image(labels.astype(np.int8), affine=np.eye(4))
-            nib.save(ni_pred, join(args.save_dir, 'infer', key + '.nii'))
-            nib.save(ni_lb, join(args.save_dir, 'label', key + '.nii'))
-        print("finish saving file:", key)
-
-def test_2(data_loader, model, args):
-    print('Test')
-    metric_val = SegmentationMetric(args.num_classes)
-    metric_val.reset()
-    model.eval()
-
-    with torch.no_grad():
-        for i, tup in enumerate(data_loader):
-            # measure data loading time
-
-            if args.gpu is not None:
-                img = tup[0].float().cuda(args.gpu, non_blocking=True)
-                label = tup[1].long().cuda(args.gpu, non_blocking=True)
-            else:
-                img = tup[0]
-                label = tup[1]
-
-            b, c, h, w = img.shape
-
-            # compute output
-            mask, iou_pred = model(img)
-            mask = mask.view(b, -1, h, w)
-
-            pred_softmax = F.softmax(mask, dim=1)
-            metric_val.update(label.squeeze(dim=1), pred_softmax)
-            pixAcc, mIoU, Dice = metric_val.get()
-
-            if i % args.print_freq == 0:
-                print("Index:%f, mean Dice:%.4f" % (i, Dice))
-
-    _, _, Dice = metric_val.get()
-    print("Overall mean dice score is:", Dice)
-    print("Finished test")
-
-
-def save_checkpoint(state, filename='checkpoint.pth'):
+def save_checkpoint(model, filename, dice, epoch):
     # torch.save(state, filename)
-    torch.save(state, filename)
+    filename = filename + str(dice) + '_' + str(epoch) + '.pth'
+    torch.save(model, filename)
     # shutil.copyfile(filename, 'model_best.pth.tar')
 
 

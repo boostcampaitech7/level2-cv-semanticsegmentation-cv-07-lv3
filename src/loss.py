@@ -21,9 +21,13 @@ class LossFactory:
             return JaccardLoss()
         elif loss_name == 'jaccard_dice_combined':
             return JaccardDiceCombinedLoss()
+        elif loss_name == 'boundary':
+            return CombinedLoss(
+                losses=[nn.BCEWithLogitsLoss(), DiceLoss(), BoundaryLoss()],
+                weights=loss_config['WEIGHTS']
+            )
         else:
             raise NotImplementedError(f"Loss {loss_name} not implemented")
-
 
 class DiceLoss(nn.Module):
     def __init__(self, smooth=1.0):
@@ -41,8 +45,8 @@ class DiceLoss(nn.Module):
         total = probs.sum() + targets.sum()
         
         dice = (2.0 * intersection + self.smooth) / (total + self.smooth)
+        
         return 1.0 - dice
-
 
 class CombinedLoss(nn.Module):
     def __init__(self, losses, weights=None):
@@ -50,8 +54,9 @@ class CombinedLoss(nn.Module):
         self.losses = losses
         self.weights = weights or [1.0] * len(losses)
         
-    def forward(self, inputs, targets):
+    def forward(self, inputs, targets, dist_maps=None):
         total_loss = 0
+
         for loss, weight in zip(self.losses, self.weights):
             total_loss += weight * loss(inputs, targets)
         return total_loss
@@ -89,3 +94,23 @@ class JaccardDiceCombinedLoss(nn.Module):
         
         total_loss = self.weights[0] * jaccard_loss_value + self.weights[1] * dice_loss_value
         return total_loss
+            if (isinstance(loss, BoundaryLoss)):
+                if dist_maps is None:
+                    raise ValueError("BoundaryLoss requires 'dist_maps' as an input.")
+                total_loss += weight * loss(inputs, dist_maps)
+            else:
+                total_loss += weight * loss(inputs, targets)
+
+        return total_loss
+
+class BoundaryLoss(nn.Module):
+    def __init__(self):
+        super(BoundaryLoss, self).__init__()
+    
+    def forward(self, logits, dist_maps):
+        probs = torch.sigmoid(logits)
+        
+        multipled = probs * dist_maps
+        loss = multipled.mean()
+
+        return loss
