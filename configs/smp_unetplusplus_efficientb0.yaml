@@ -80,8 +80,8 @@ AUGMENTATION:
     IGNORE_VALUES: [0]
     
 LOSS:
-  NAME: "bce"  # ['bce', 'dice', 'combined']
-  WEIGHTS: [0.5, 0.5]  # weights for combined loss
+  NAME: "bce"  # ['bce', 'dice', 'combined', 'boundary']
+  WEIGHTS: [0.5, 0.5, 0.01]  # weights for combined loss and boundary loss
 
 OPTIMIZER:
   NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
