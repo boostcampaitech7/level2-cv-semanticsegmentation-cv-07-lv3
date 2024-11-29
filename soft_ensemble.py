@@ -2,25 +2,18 @@ import os
 import cv2
 import argparse
 import yaml
-
-import numpy as np
-import pandas as pd
-
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from albumentations import Resize
+from torch.utils.data import Dataset, DataLoader
 
 from utils.utils_for_visualizer import encode_mask_to_rle
-from segformer_to_esb import initialize_model
-
 
 def parse_args():
-    """
-        터미널로 설정한 명령인자를 파싱
-    """
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Inference segmentation model')
     parser.add_argument('-c', '--config', type=str, default='smp_unetplusplus_efficientb0.yaml',
                         help='path to config file')
@@ -32,19 +25,17 @@ def parse_args():
 
 
 def load_config(config_name):
-    """
-        Config 파일 불러오기
-    """
+    """Load config file"""
     config_path = os.path.join('configs', config_name)
     if not os.path.exists(config_path):
-        print(f'Config 파일 없음: {config_path}')
+        print(f'Config file not found: {config_path}')
         exit(1)
 
     with open(config_path, 'r') as f:
         try:
             config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            print(f'파일 불러오기 실패: {e}')
+            print(f'Error loading config file: {e}')
             exit(1)
 
     
@@ -56,8 +47,6 @@ def load_config(config_name):
     config.setdefault('threshold', 0.5)
     
     return config
-
-
 
 class EnsembleDataset(Dataset):
     def __init__(self, fnames, cfg, tf_dict):
@@ -121,23 +110,6 @@ def load_models(cfg, device):
             model_dict[key].append(model)
             model_count += 1
             print("불러오기 성공!")
-        print()
-    print(model_dict.keys())
-    model = initialize_model( 
-        model_name='segformer',  
-        num_classes=29, 
-        encoder_name='nvidia/mit-b5',
-        pretrained=False, 
-        encoder_weights=None,  # 
-    ) 
-    model_path = 'checkpoints/segformer.pt'
-    model.load_state_dict(torch.load(model_path, map_location=device)) 
-    # print(model)
-    print(f"Model 'segformer' loaded from {model_path} and moved to {device}.") 
-    model.eval()
-    key = '/data/ephemeral/home/repo/checkpoints/segformer.pt'
-    model_dict[key].append(model)
-    model_count += 1
 
     print(f"모델 총 {model_count}개 불러오기 성공!\n")
     return model_dict, model_count
@@ -195,7 +167,6 @@ def soft_voting(cfg):
                              collate_fn=dataset.collate_fn)
 
     model_dict, model_count = load_models(cfg, device)
-    print(model_dict)
     
     filename_and_class = []
     rles = []
