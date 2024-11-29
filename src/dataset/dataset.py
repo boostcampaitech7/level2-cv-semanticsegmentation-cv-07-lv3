@@ -3,8 +3,28 @@ import cv2
 import json
 import numpy as np
 import torch
+
 from torch.utils.data import Dataset
 from typing import Dict, List, Optional, Tuple
+from scipy.ndimage import distance_transform_edt
+
+
+def dist_map_transform(resolution):
+    def transform(one_hot_label):
+        if isinstance(one_hot_label, torch.Tensor):
+            one_hot_label = one_hot_label.cpu().numpy()
+        
+        # Compute distance map
+        posmask = one_hot_label.astype(bool)
+        dist = np.zeros_like(one_hot_label, dtype=np.float32)
+        if posmask.any():
+            negmask = ~posmask
+            dist = distance_transform_edt(negmask, sampling=resolution) * negmask \
+                   - (distance_transform_edt(posmask, sampling=resolution) - 1) * posmask
+
+        return torch.from_numpy(dist)
+
+    return transform
 
 class XRayDataset(Dataset):
     """X-Ray image segmentation dataset class
