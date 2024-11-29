@@ -59,6 +59,9 @@ class XRayDataset(Dataset):
         # Initialize dataset
         self.filenames, self.labelnames = self._init_dataset()
 
+        # Initialize dist_transform function
+        self.dist_transform = dist_map_transform([1, 1])
+
     def _init_dataset(self) -> Tuple[List[str], List[str]]:
         """Initialize dataset by finding all image and label files
         
@@ -200,7 +203,11 @@ class XRayDataset(Dataset):
         # Convert to tensor
         image = torch.from_numpy(image).float()
         label = torch.from_numpy(label).float()
-            
+        
+        if (self.cfg['LOSS']['NAME'] == 'boundary'):
+            dist_map = torch.stack([self.dist_transform(class_channel) for class_channel in label])  # Distance map for labels
+            return image, label, dist_map
+
         return image, label
 
 class XRayInferenceDataset(Dataset):
