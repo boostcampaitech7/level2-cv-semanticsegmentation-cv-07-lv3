@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from torch.utils.data import Dataset
+from sklearn.model_selection import GroupKFold
 from typing import Dict, List, Optional, Tuple
 from scipy.ndimage import distance_transform_edt
 
@@ -106,7 +107,6 @@ class XRayDataset(Dataset):
         ys = [0 for _ in _filenames]
         
         # Use GroupKFold to split data
-        from sklearn.model_selection import GroupKFold
         gkf = GroupKFold(n_splits=5)
         
         filenames = []
