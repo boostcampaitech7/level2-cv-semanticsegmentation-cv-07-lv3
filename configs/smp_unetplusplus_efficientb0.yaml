@@ -1,12 +1,12 @@
 WANDB:
-  GROUP: 'test'
+  GROUP: 'u++'
   NAME: 'smp_unetplusplus_efficientb0'
 
 DATASET:
   IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
   LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
   TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"
-  IMAGE_SIZE: 512  # or whatever size you want
+  IMAGE_SIZE: 1024  # or whatever size you want
   BATCH_SIZE: 4
   NUM_WORKERS: 4
   FOLD: 0
@@ -14,7 +14,7 @@ DATASET:
 MODEL:
   TYPE: "smp"
   ARCHITECTURE: "UnetPlusPlus"
-  ENCODER: "efficientnet-b0"
+  ENCODER: "efficientnet-b7"
   ENCODER_WEIGHTS: "imagenet"
 
 TRAIN:
@@ -41,8 +41,8 @@ AUGMENTATION:
     P: 0.5
 
   RANDOM_ROTATE:
-    ENABLED: False
-    LIMIT: 15
+    ENABLED: True
+    LIMIT: 5
     P: 0.5
 
   GAUSSIAN_NOISE:
@@ -51,8 +51,8 @@ AUGMENTATION:
     P: 0.3
 
   CLAHE:
-    ENABLED: False
-    CLIP_LIMIT: 4.0
+    ENABLED: True
+    CLIP_LIMIT: 5.0
     P: 0.5
     
   RANDOM_GAMMA:
@@ -74,17 +74,17 @@ AUGMENTATION:
     P: 0.3
 
   CROP_NON_EMPTY_MASK:
-    ENABLED: False
+    ENABLED: True
     WIDTH: 512
     HEIGHT: 512
     IGNORE_VALUES: [0]
     
 LOSS:
-  NAME: "bce"  # ['bce', 'dice', 'combined', 'boundary']
-  WEIGHTS: [0.5, 0.5, 0.01]  # weights for combined loss and boundary loss
+  NAME: "combined"  # ['bce', 'dice', 'combined', 'boundary']
+  WEIGHTS: [0.5, 0.5] 
 
 OPTIMIZER:
-  NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
+  NAME: "adamw"  # ['adam', 'adamw', 'sgd', 'lion']
   LR: 1e-4
   WEIGHT_DECAY: 1e-6
   BETAS: [0.9, 0.999]  # for adam/adamw/lion
@@ -96,12 +96,12 @@ OPTIMIZER:
 
 SCHEDULER:
   USE_SCHEDULER: True
-  NAME: "steplr"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
+  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
   STEP_SIZE: 10  # for steplr
   MILESTONES: [10, 20, 30]  # for multisteplr
   GAMMA: 0.95  # for exponentiallr
   FACTOR: 0.1  # for reducelronplateau
-  PATIENCE: 10  # for reducelronplateau
+  PATIENCE: 2  # for reducelronplateau
   VERBOSE: True  # for reducelronplateau
   T_MAX: 10  # for cosineannealinglr
   ETA_MIN: 0  # for cosineannealinglr
@@ -110,7 +110,7 @@ SCHEDULER:
   ETA_MIN: 0  # for cosineannealingwarmrestarts
 
 VALIDATION:
-  THRESHOLD: 0.5  # Add threshold parameter
+  THRESHOLD: 0.3  # Add threshold parameter
 
 CLASSES: [
   'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
@@ -120,3 +120,25 @@ CLASSES: [
   'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
   'Triquetrum', 'Pisiform', 'Radius', 'Ulna'
 ]
+
+image_root: "/data/ephemeral/home/data/test/DCM"
+
+model_paths:
+  1024: [
+    "/data/ephemeral/home/repo/checkpoints/smp_unetplusplus_hrnetw64_sota_fold0.pt",
+    "/data/ephemeral/home/repo/checkpoints/smp_unetplusplus_hrnetw64_sota_fold1.pt",
+    "/data/ephemeral/home/repo/checkpoints/smp_unetplusplus_hrnetw64_sota_fold2.pt",
+    "/data/ephemeral/home/repo/checkpoints/smp_unetplusplus_hrnetw64_sota_fold3.pt",
+    "/data/ephemeral/home/repo/checkpoints/smp_unetplusplus_hrnetw64_sota_fold4.pt",
+    '/data/ephemeral/home/repo/checkpoints/best_model_kfold0.pt',
+    '/data/ephemeral/home/repo/checkpoints/segformer.pt',
+  ]
+  736: [
+    
+  ]
+
+save_dir: "/data/ephemeral/home/results"
+output_name: "ensemble_results_hrnet_segformer_eff00.csv"
+batch_size: 8
+num_workers: 4
+threshold: 0.5
