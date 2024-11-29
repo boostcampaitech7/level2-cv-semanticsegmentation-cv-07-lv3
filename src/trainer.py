@@ -14,6 +14,8 @@ from typing import Dict, Tuple
 from datetime import timedelta
 from utils.resources import CLASSES
 from utils.utils_for_visualizer import encode_mask_to_rle
+from utils.resources import CLASSES
+
 
 class Trainer:
     """Trainer class for model training and validation
@@ -69,6 +71,7 @@ class Trainer:
         print(f'Start training..')
         
         best_dice = 0.
+        lowest_loss = 0.016
         best_epoch = -1
         best_model_path = None
         
@@ -95,7 +98,11 @@ class Trainer:
             wandb.log(train_log_dict)
             
             # Validation phase
-            if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0:
+            if (epoch + 1) % self.cfg['TRAIN']['VAL_EVERY'] == 0 or train_loss < lowest_loss:
+
+                if train_loss < lowest_loss:
+                    lowest_loss = train_loss
+
                 dice, class_dice_dict, val_loss, val_results = self._validate_epoch(epoch + 1)
                 
                 # Step scheduler for ReduceLROnPlateau
@@ -243,6 +250,7 @@ class Trainer:
                     # Calculate Dice coefficient on GPU
                     outputs = torch.sigmoid(outputs)
                     outputs = (outputs > self.threshold)
+
                     dice = self.dice_coef(outputs, masks)
                     dices.append(dice.detach().cpu())
 
