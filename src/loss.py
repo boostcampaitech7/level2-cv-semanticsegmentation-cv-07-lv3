@@ -17,6 +17,10 @@ class LossFactory:
                 losses=[nn.BCEWithLogitsLoss(), DiceLoss()],
                 weights=loss_config['WEIGHTS']
             )
+        elif loss_name == 'jaccard':
+            return JaccardLoss()
+        elif loss_name == 'jaccard_dice_combined':
+            return JaccardDiceCombinedLoss()
         elif loss_name == 'boundary':
             return CombinedLoss(
                 losses=[nn.BCEWithLogitsLoss(), DiceLoss(), BoundaryLoss()],
@@ -54,6 +58,42 @@ class CombinedLoss(nn.Module):
         total_loss = 0
 
         for loss, weight in zip(self.losses, self.weights):
+            total_loss += weight * loss(inputs, targets)
+        return total_loss
+
+
+class JaccardLoss(nn.Module):
+    def __init__(self, smooth=1.0):
+        super(JaccardLoss, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, logits, targets):
+        probs = torch.sigmoid(logits)
+        
+        # Flatten
+        probs = probs.view(-1)
+        targets = targets.view(-1)
+        
+        intersection = (probs * targets).sum()
+        union = probs.sum() + targets.sum() - intersection
+        
+        jaccard = (intersection + self.smooth) / (union + self.smooth)
+        return 1.0 - jaccard
+
+
+class JaccardDiceCombinedLoss(nn.Module):
+    def __init__(self, weights=None):
+        super(JaccardDiceCombinedLoss, self).__init__()
+        self.jaccard_loss = JaccardLoss()
+        self.dice_loss = DiceLoss()
+        self.weights = weights or [0.5, 0.5]  # 기본 가중치
+
+    def forward(self, inputs, targets):
+        jaccard_loss_value = self.jaccard_loss(inputs, targets)
+        dice_loss_value = self.dice_loss(inputs, targets)
+        
+        total_loss = self.weights[0] * jaccard_loss_value + self.weights[1] * dice_loss_value
+        return total_loss
             if (isinstance(loss, BoundaryLoss)):
                 if dist_maps is None:
                     raise ValueError("BoundaryLoss requires 'dist_maps' as an input.")
