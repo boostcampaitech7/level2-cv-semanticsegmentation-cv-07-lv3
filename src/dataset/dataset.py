@@ -27,6 +27,7 @@ def dist_map_transform(resolution):
 
     return transform
 
+
 class XRayDataset(Dataset):
     """X-Ray image segmentation dataset class
     
@@ -180,21 +181,18 @@ class XRayDataset(Dataset):
             # Augmentation을 적용한 이미지 저장
             save_dir = "../img/augmented_images"
             os.makedirs(save_dir, exist_ok=True)
-            aug_image_path = os.path.join(save_dir, f"aug_{item}_image.png")
-            aug_label_path = os.path.join(save_dir, f"aug_{item}_label.png")
-            
-            cv2.imwrite(aug_image_path, (image * 255).astype(np.uint8))
+
+            dir_name = image_name.split('/')[0]
+            file_name = image_name.split('/')[1].split('.')[0]
+
+            aug_image_path = os.path.join(save_dir, f"{item}_image_{dir_name}_{file_name}.png")
+            aug_label_path = os.path.join(save_dir, f"{item}_label_{dir_name}_{file_name}.png")
+
             
             # train 모드에서 Augmentation이 적용된 마스크를 저장
-            # 주석은 class 관련 확인을 위한 코드 -> 추후 삭제 예정
-            if self.is_train:
-                #num_classes = 29
-                #all_classes = set(range(num_classes))
-                #present_classes = set(np.unique(label.argmax(axis=-1)))
-                #missing_classes = all_classes - present_classes
-                #print(f"{image_name}: {sorted(missing_classes)}")
-                #print(f"{image_name}: {np.unique(label.argmax(axis=-1))}")
-                cv2.imwrite(aug_label_path, (label.argmax(axis=-1) * 255).astype(np.uint8))
+            cv2.imwrite(aug_image_path, (image * 255).astype(np.uint8))
+            cv2.imwrite(aug_label_path, (label.argmax(axis=-1) * 255).clip(0, 255).astype(np.uint8))
+            
 
         # Convert to channel-first format
         image = image.transpose(2, 0, 1)
