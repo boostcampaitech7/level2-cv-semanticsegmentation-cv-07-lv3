@@ -25,7 +25,7 @@
 
 ### MEMBERS
 
-| <img src="https://github.com/user-attachments/assets/51235bb8-bff2-4026-a2af-12e4eb78fe66" width="200" height="200"/> | <img src="https://github.com/user-attachments/assets/ba0a59b9-88db-43a1-995c-977a85c3128f" width="200" height="200"/> | <img src="https://github.com/user-attachments/assets/b9eee66f-51db-4dbb-b61f-f2ea12956da0" width="200" height="200"/> | <img src="https://github.com/user-attachments/assets/72df8b46-718a-4471-b176-ba17e3887a77" width="200" height="200"/> | <img src="https://github.com/user-attachments/assets/7afc3745-190d-426c-8f69-5b47fce5c0e1" width="200" height="200"/> | <img src="https://github.com/user-attachments/assets/949fd85a-0a55-435b-8a36-20d98eac7ce4" width="200" height="200"/> |
+| <img src="https://github.com/user-attachments/assets/51235bb8-bff2-4026-a2af-12e4eb78fe66" width="200" height="150"/> | <img src="https://github.com/user-attachments/assets/ba0a59b9-88db-43a1-995c-977a85c3128f" width="200" height="150"/> | <img src="https://github.com/user-attachments/assets/b9eee66f-51db-4dbb-b61f-f2ea12956da0" width="200" height="150"/> | <img src="https://github.com/user-attachments/assets/72df8b46-718a-4471-b176-ba17e3887a77" width="200" height="150"/> | <img src="https://github.com/user-attachments/assets/7afc3745-190d-426c-8f69-5b47fce5c0e1" width="200" height="150"/> | <img src="https://github.com/user-attachments/assets/949fd85a-0a55-435b-8a36-20d98eac7ce4" width="200" height="150"/> |
 | --- | --- | --- | --- | --- | --- |
 | [김민솔](https://github.com/kim-minsol) | [김예진](https://github.com/yeyechu) | [배형준](https://github.com/BaeHyungJoon) | [송재현](https://github.com/mongsam2) | [이재효](https://github.com/jxxhyo) | [차성연](https://github.com/MICHAA4) |
 
