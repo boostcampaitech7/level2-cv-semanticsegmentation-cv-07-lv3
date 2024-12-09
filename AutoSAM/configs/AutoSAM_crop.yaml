@@ -1,0 +1,122 @@
+WANDB:
+  GROUP: 'test'
+  NAME: 'AutoSAM'
+
+DATASET:
+  IMAGE_ROOT: "/data/ephemeral/home/data/train/DCM"
+  LABEL_ROOT: "/data/ephemeral/home/data/train/outputs_json"
+  TEST_IMAGE_ROOT: "/data/ephemeral/home/data/test/DCM"
+  IMAGE_SIZE: 1024  # or whatever size you want
+  BATCH_SIZE: 4
+  NUM_WORKERS: 4
+  FOLD: 0
+
+MODEL:
+  TYPE: "AutoSAM"
+  ARCHITECTURE: "AutoSAM"
+  ENCODER: "SAM-vit-l"
+  ENCODER_WEIGHTS: ""
+
+TRAIN:
+  NUM_EPOCHS: 120
+  VAL_EVERY: 1
+  LEARNING_RATE: 1e-4
+  WEIGHT_DECAY: 1e-6
+  RANDOM_SEED: 21
+  SAVED_DIR: "checkpoints"
+
+AUGMENTATION:
+  HORIZONTAL_FLIP:
+    ENABLED: False
+    P: 0.5
+
+  VERTICAL_FLIP:
+    ENABLED: False
+    P: 0.5
+
+  RANDOM_BRIGHTNESS_CONTRAST:
+    ENABLED: False
+    BRIGHTNESS_LIMIT: 0.2
+    CONTRAST_LIMIT: 0.2
+    P: 0.5
+
+  RANDOM_ROTATE:
+    ENABLED: False
+    LIMIT: 15
+    P: 0.5
+
+  GAUSSIAN_NOISE:
+    ENABLED: False
+    VAR_LIMIT: [10.0, 50.0]
+    P: 0.3
+
+  CLAHE:
+    ENABLED: False
+    CLIP_LIMIT: 4.0
+    P: 0.5
+    
+  RANDOM_GAMMA:
+    ENABLED: False
+    GAMMA_LIMIT: [80, 120]
+    P: 0.3
+
+  ELASTIC_TRANSFORM:
+    ENABLED: False
+    ALPHA: 120
+    SIGMA: 120 * 0.05
+    ALPHA_AFFINE: 120 * 0.03
+    P: 0.3
+
+  GRID_DISTORTION:
+    ENABLED: False
+    NUM_STEPS: 5
+    DISTORT_LIMIT: 0.3
+    P: 0.3
+  
+  CROP_NON_EMPTY_MASK:
+    ENABLED: True
+    WIDTH: 512
+    HEIGHT: 512
+    IGNORE_VALUES: [0]
+    
+LOSS:
+  NAME: "combined"  # ['bce', 'dice', 'combined']
+  WEIGHTS: [1.0, 1.0]  # weights for combined loss
+
+OPTIMIZER:
+  NAME: "adam"  # ['adam', 'adamw', 'sgd', 'lion']
+  LR: 1e-4
+  WEIGHT_DECAY: 1e-6
+  BETAS: [0.9, 0.999]  # for adam/adamw/lion
+  USE_TRITON: False  # for lion
+  MOMENTUM: 0.9  # for sgd
+  USE_LOOKAHEAD: False  # for lion (True -> Lookahead_Lion)
+  LOOKAHEAD_K: 5  # for Lookahead_Lion
+  LOOKAHEAD_ALPHA: 0.5  # for Lookahead_Lion
+
+SCHEDULER:
+  USE_SCHEDULER: True
+  NAME: "reducelronplateau"  # ['steplr', 'multisteplr', 'exponentiallr', 'cosineannealinglr', 'cosineannealingwarmrestarts', 'reducelronplateau']
+  STEP_SIZE: 10  # for steplr
+  MILESTONES: [10, 20, 30]  # for multisteplr
+  GAMMA: 0.95  # for exponentiallr
+  FACTOR: 0.1  # for reducelronplateau
+  PATIENCE: 10  # for reducelronplateau
+  VERBOSE: True  # for reducelronplateau
+  T_MAX: 10  # for cosineannealinglr
+  ETA_MIN: 0  # for cosineannealinglr
+  T_0: 10  # for cosineannealingwarmrestarts
+  T_MULT: 1  # for cosineannealingwarmrestarts
+  ETA_MIN: 0  # for cosineannealingwarmrestarts
+
+VALIDATION:
+  THRESHOLD: 0.5  # Add threshold parameter
+
+CLASSES: [
+  'finger-1', 'finger-2', 'finger-3', 'finger-4', 'finger-5',
+  'finger-6', 'finger-7', 'finger-8', 'finger-9', 'finger-10',
+  'finger-11', 'finger-12', 'finger-13', 'finger-14', 'finger-15',
+  'finger-16', 'finger-17', 'finger-18', 'finger-19', 'Trapezium',
+  'Trapezoid', 'Capitate', 'Hamate', 'Scaphoid', 'Lunate',
+  'Triquetrum', 'Pisiform', 'Radius', 'Ulna'
+]
